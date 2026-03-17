@@ -4,23 +4,34 @@ import { Sidebar } from './components/sidebar/Sidebar'
 import { FolioEditor } from './components/editor/FolioEditor'
 import { TitleBar } from './components/editor/TitleBar'
 import { CommandPalette } from './components/CommandPalette'
+import { ChatPanel } from './components/chat/ChatPanel'
 import { useUIStore } from './stores/ui'
 import { useVaultStore } from './stores/vault'
+import { useClaudeEvents } from './hooks/useClaudeEvents'
 
 function App() {
-  const { toggleCommandPalette } = useUIStore()
+  const { toggleCommandPalette, chatOpen, chatWidth, toggleChat } = useUIStore()
   const { openVault, isOpen } = useVaultStore()
+
+  // Subscribe to Claude events
+  useClaudeEvents()
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd+K / Cmd+P — command palette
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'p')) {
         e.preventDefault()
         toggleCommandPalette()
       }
+      // Cmd+Shift+L — toggle chat
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'l') {
+        e.preventDefault()
+        toggleChat()
+      }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [toggleCommandPalette])
+  }, [toggleCommandPalette, toggleChat])
 
   // Listen for index-complete events
   useEffect(() => {
@@ -44,9 +55,10 @@ function App() {
   return (
     <div className="app-container flex h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <Sidebar />
+
       <div className="flex-1 flex flex-col min-w-0">
         {/* Drag region for titlebar */}
-        <div className="titlebar-drag h-10 flex-shrink-0 flex items-center">
+        <div className="titlebar-drag h-10 flex-shrink-0 flex items-center border-b border-[var(--border)]">
           {isOpen && <TitleBar />}
         </div>
         <main className="flex-1 overflow-y-auto">
@@ -57,6 +69,10 @@ function App() {
           )}
         </main>
       </div>
+
+      {/* Chat panel */}
+      {chatOpen && <ChatPanel style={{ width: chatWidth }} />}
+
       <CommandPalette />
     </div>
   )

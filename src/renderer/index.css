@@ -104,3 +104,65 @@ body {
 .titlebar-no-drag {
   -webkit-app-region: no-drag;
 }
+
+/* Chat markdown prose styling */
+.prose-folio h1 { font-size: 1.25rem; font-weight: 600; margin: 0.75em 0 0.25em; }
+.prose-folio h2 { font-size: 1.1rem; font-weight: 600; margin: 0.75em 0 0.25em; }
+.prose-folio h3 { font-size: 1rem; font-weight: 600; margin: 0.5em 0 0.25em; }
+.prose-folio p { margin: 0.4em 0; }
+.prose-folio ul, .prose-folio ol { margin: 0.3em 0; padding-left: 1.25em; }
+.prose-folio li { margin: 0.15em 0; }
+.prose-folio code {
+  font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.85em;
+  background: var(--bg-code);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+.prose-folio pre {
+  background: var(--bg-code);
+  border-radius: 6px;
+  padding: 0.75em 1em;
+  margin: 0.5em 0;
+  overflow-x: auto;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.prose-folio pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+.prose-folio blockquote {
+  border-left: 2px solid var(--border);
+  padding-left: 0.75em;
+  margin: 0.5em 0;
+  color: var(--text-secondary);
+}
+.prose-folio table {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  font-size: 0.85em;
+  width: 100%;
+}
+.prose-folio th, .prose-folio td {
+  border: 1px solid var(--border);
+  padding: 0.3em 0.6em;
+  text-align: left;
+}
+.prose-folio th {
+  background: var(--bg-code);
+  font-weight: 600;
+}
+.prose-folio a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.prose-folio a:hover {
+  text-decoration: underline;
+}
+.prose-folio hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0.75em 0;
+}
