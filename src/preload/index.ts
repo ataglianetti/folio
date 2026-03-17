@@ -20,9 +20,24 @@ export interface FolioAPI {
     noteCount: () => Promise<number>
     selectDirectory: () => Promise<string | null>
 
-    // Events
     onIndexComplete: (callback: (count: number) => void) => () => void
     onFileChange: (callback: (event: { path: string; kind: string }) => void) => () => void
+  }
+
+  claude: {
+    sendPrompt: (requestId: string, prompt: string, projectPath?: string) => Promise<void>
+    cancel: () => Promise<boolean>
+    respondPermission: (questionId: string, decision: string) => Promise<boolean>
+    getStatus: () => Promise<{
+      status: string
+      sessionId: string | null
+      model: string | null
+      lastResult: unknown | null
+    }>
+    resetSession: () => Promise<void>
+
+    onEvent: (callback: (event: Record<string, unknown>) => void) => () => void
+    onStatusChange: (callback: (status: string, oldStatus: string) => void) => () => void
   }
 }
 
@@ -49,6 +64,31 @@ const api: FolioAPI = {
       const handler = (_event: Electron.IpcRendererEvent, event: { path: string; kind: string }) => callback(event)
       ipcRenderer.on('folio:file-change', handler)
       return () => ipcRenderer.removeListener('folio:file-change', handler)
+    },
+  },
+
+  claude: {
+    sendPrompt: (requestId, prompt, projectPath) =>
+      ipcRenderer.invoke('folio:claude-send', requestId, prompt, projectPath),
+    cancel: () =>
+      ipcRenderer.invoke('folio:claude-cancel'),
+    respondPermission: (questionId, decision) =>
+      ipcRenderer.invoke('folio:claude-respond-permission', questionId, decision),
+    getStatus: () =>
+      ipcRenderer.invoke('folio:claude-status'),
+    resetSession: () =>
+      ipcRenderer.invoke('folio:claude-reset'),
+
+    onEvent: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, event: Record<string, unknown>) => callback(event)
+      ipcRenderer.on('folio:claude-event', handler)
+      return () => ipcRenderer.removeListener('folio:claude-event', handler)
+    },
+
+    onStatusChange: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, status: string, oldStatus: string) => callback(status, oldStatus)
+      ipcRenderer.on('folio:claude-status', handler)
+      return () => ipcRenderer.removeListener('folio:claude-status', handler)
     },
   },
 }
