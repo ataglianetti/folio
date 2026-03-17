@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.folio/
+*.db
+.DS_Store
