@@ -74,9 +74,9 @@ function FileTreeNode({
       <button
         onClick={handleClick}
         className={`
-          w-full text-left py-[3px] flex items-center gap-1 rounded-[4px] mx-1
-          hover:bg-[var(--bg-hover)] transition-colors cursor-pointer
-          ${isActive ? 'bg-[var(--bg-active)] text-[var(--accent)]' : 'text-[var(--text-secondary)]'}
+          w-full text-left h-7 flex items-center gap-1 rounded-[4px] mx-1
+          hover:bg-[var(--bg-hover)] transition-all duration-150 cursor-pointer
+          ${isActive ? 'bg-[var(--bg-active)] text-[var(--accent)] border-l-2 border-l-[var(--accent)]' : 'text-[var(--text-secondary)] border-l-2 border-l-transparent'}
         `}
         style={{ paddingLeft: `${depth * 14 + 6}px`, width: 'calc(100% - 8px)' }}
       >

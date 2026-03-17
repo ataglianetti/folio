@@ -8,13 +8,19 @@ import { ChatPanel } from './components/chat/ChatPanel'
 import { useUIStore } from './stores/ui'
 import { useVaultStore } from './stores/vault'
 import { useClaudeEvents } from './hooks/useClaudeEvents'
+import { watchSystemTheme } from './theme'
 
 function App() {
-  const { toggleCommandPalette, chatOpen, chatWidth, toggleChat } = useUIStore()
+  const { toggleCommandPalette, chatOpen, chatWidth, toggleChat, setSystemDark } = useUIStore()
   const { openVault, isOpen } = useVaultStore()
 
   // Subscribe to Claude events
   useClaudeEvents()
+
+  // Theme system — watch OS preference
+  useEffect(() => {
+    return watchSystemTheme(setSystemDark)
+  }, [setSystemDark])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

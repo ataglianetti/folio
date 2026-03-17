@@ -1,10 +1,17 @@
 import { useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useClaudeStore, type Message } from '../../stores/claude'
 import { UserMessage } from './UserMessage'
 import { AssistantMessage } from './AssistantMessage'
 import { ToolCard } from './ToolCard'
 import { PermissionCard } from './PermissionCard'
 import { Sparkle } from '@phosphor-icons/react'
+
+const messageVariants = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0 },
+}
 
 export function MessageList() {
   const messages = useClaudeStore((s) => s.messages)
@@ -15,7 +22,6 @@ export function MessageList() {
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
-    // Only auto-scroll if user is near bottom
     const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100
     if (isNearBottom) {
       el.scrollTop = el.scrollHeight
@@ -25,7 +31,10 @@ export function MessageList() {
   if (messages.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-        <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center mb-3">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
+          style={{ background: 'var(--accent-soft)' }}
+        >
           <Sparkle size={20} weight="fill" className="text-[var(--accent)]" />
         </div>
         <p className="text-[var(--text-secondary)] text-sm font-medium">Claude Code</p>
@@ -38,14 +47,32 @@ export function MessageList() {
 
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3">
-      {messages.map((message) => (
-        <MessageItem key={message.id} message={message} />
-      ))}
+      <AnimatePresence initial={false}>
+        {messages.map((message) => (
+          <motion.div
+            key={message.id}
+            variants={messageVariants}
+            initial="initial"
+            animate="animate"
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            layout={false}
+          >
+            <MessageItem message={message} />
+          </motion.div>
+        ))}
 
-      {/* Permission cards at the bottom */}
-      {permissionQueue.map((request) => (
-        <PermissionCard key={request.questionId} request={request} />
-      ))}
+        {permissionQueue.map((request) => (
+          <motion.div
+            key={request.questionId}
+            variants={messageVariants}
+            initial="initial"
+            animate="animate"
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+          >
+            <PermissionCard request={request} />
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </div>
   )
 }

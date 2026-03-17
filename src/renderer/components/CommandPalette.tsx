@@ -58,7 +58,7 @@ export function CommandPalette() {
         onClick={toggleCommandPalette}
       />
 
-      <div className="relative w-[520px] max-h-[380px] bg-[var(--bg-primary)] rounded-xl shadow-2xl border border-[var(--border)] overflow-hidden">
+      <div className="relative w-[520px] max-h-[380px] bg-[var(--bg-surface)] backdrop-blur-xl rounded-xl shadow-2xl border border-[var(--border)] overflow-hidden">
         <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[var(--border)]">
           <Search size={15} className="text-[var(--text-muted)] flex-shrink-0" />
           <input
