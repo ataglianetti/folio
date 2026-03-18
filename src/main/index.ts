@@ -18,12 +18,17 @@ function createWindow(): void {
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },
     webPreferences: {
-      preload: join(__dirname, '../preload/index.mjs'),
+      preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
     },
   })
+
+  // Open devtools in dev
+  if (process.env.ELECTRON_RENDERER_URL) {
+    mainWindow.webContents.openDevTools({ mode: 'detach' })
+  }
 
   // In dev, load from vite dev server
   if (process.env.ELECTRON_RENDERER_URL) {
@@ -52,8 +57,15 @@ function createWindow(): void {
 // --- Vault IPC Handlers ---
 
 ipcMain.handle('folio:open-vault', async (_event, path: string) => {
-  await vaultManager.openVault(path)
-  return 0
+  console.log('[IPC] open-vault:', path)
+  try {
+    await vaultManager.openVault(path)
+    console.log('[IPC] open-vault success')
+    return 0
+  } catch (err) {
+    console.error('[IPC] open-vault failed:', err)
+    throw err
+  }
 })
 
 ipcMain.handle('folio:read-note', async (_event, path: string) => {
@@ -65,7 +77,15 @@ ipcMain.handle('folio:write-note', async (_event, path: string, content: string)
 })
 
 ipcMain.handle('folio:list-directory', async (_event, path: string) => {
-  return vaultManager.listDirectory(path)
+  console.log('[IPC] list-directory:', path)
+  try {
+    const result = vaultManager.listDirectory(path)
+    console.log('[IPC] list-directory result:', result.length, 'entries')
+    return result
+  } catch (err) {
+    console.error('[IPC] list-directory failed:', err)
+    throw err
+  }
 })
 
 ipcMain.handle('folio:search-notes', async (_event, query: string) => {
@@ -89,14 +109,21 @@ ipcMain.handle('folio:note-count', async () => {
 })
 
 ipcMain.handle('folio:select-directory', async () => {
-  const result = await dialog.showOpenDialog(mainWindow!, {
-    properties: ['openDirectory'],
-    title: 'Open Vault',
-  })
-  if (result.canceled || result.filePaths.length === 0) {
-    return null
+  console.log('[IPC] select-directory called')
+  try {
+    const result = await dialog.showOpenDialog(mainWindow!, {
+      properties: ['openDirectory'],
+      title: 'Open Vault',
+    })
+    console.log('[IPC] select-directory result:', result)
+    if (result.canceled || result.filePaths.length === 0) {
+      return null
+    }
+    return result.filePaths[0]
+  } catch (err) {
+    console.error('[IPC] select-directory failed:', err)
+    throw err
   }
-  return result.filePaths[0]
 })
 
 // --- Claude IPC Handlers ---
@@ -136,8 +163,13 @@ ipcMain.handle('folio:claude-reset', async () => {
 // --- App lifecycle ---
 
 app.whenReady().then(async () => {
-  // Initialize permission server before creating window
-  await sessionManager.initialize()
+  // Initialize permission server (non-blocking — window opens even if this fails)
+  try {
+    await sessionManager.initialize()
+    console.log('[Main] Permission server initialized')
+  } catch (err) {
+    console.error('[Main] Permission server failed to start:', err)
+  }
 
   createWindow()
 

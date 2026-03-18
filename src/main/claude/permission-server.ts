@@ -75,25 +75,33 @@ export class PermissionServer extends EventEmitter {
   async start(): Promise<void> {
     if (this.server) return
 
-    return new Promise((resolve, reject) => {
-      this.server = createServer((req, res) => this.handleRequest(req, res))
-
-      this.server.on('error', (err: NodeJS.ErrnoException) => {
-        if (err.code === 'EADDRINUSE') {
-          // Try next port
-          this.port++
-          this.server?.listen(this.port)
-        } else {
-          reject(err)
-        }
-      })
-
-      this.server.on('listening', () => {
+    const maxAttempts = 10
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        await this.tryListen(this.port + attempt)
+        this.port = this.port + attempt
         this._ready = true
+        console.log(`[PermissionServer] Listening on port ${this.port}`)
+        return
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException
+        if (nodeErr.code === 'EADDRINUSE' && attempt < maxAttempts - 1) {
+          continue
+        }
+        throw err
+      }
+    }
+  }
+
+  private tryListen(port: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const server = createServer((req, res) => this.handleRequest(req, res))
+      server.once('error', reject)
+      server.once('listening', () => {
+        this.server = server
         resolve()
       })
-
-      this.server.listen(this.port)
+      server.listen(port)
     })
   }
 

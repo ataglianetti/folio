@@ -33,7 +33,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   showCommandPalette: false,
   themeMode: 'system',
   isDark: true, // Default dark
-  chatOpen: false,
+  chatOpen: true,
   chatWidth: 400,
 
   setSidebarPanel: (panel) => set({ sidebarPanel: panel }),

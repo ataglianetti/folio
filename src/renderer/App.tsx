@@ -30,7 +30,7 @@ function App() {
         toggleCommandPalette()
       }
       // Cmd+Shift+L — toggle chat
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'l') {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'l' || e.key === 'L')) {
         e.preventDefault()
         toggleChat()
       }
