@@ -8,7 +8,7 @@ import { ChatPanel } from './components/chat/ChatPanel'
 import { useUIStore } from './stores/ui'
 import { useVaultStore } from './stores/vault'
 import { useClaudeEvents } from './hooks/useClaudeEvents'
-import { watchSystemTheme } from './theme'
+import { applyTheme, watchSystemTheme } from './theme'
 
 function App() {
   const { toggleCommandPalette, chatOpen, chatWidth, toggleChat, setSystemDark } = useUIStore()
@@ -17,8 +17,9 @@ function App() {
   // Subscribe to Claude events
   useClaudeEvents()
 
-  // Theme system — watch OS preference
+  // Apply theme on mount + watch OS preference
   useEffect(() => {
+    applyTheme(useUIStore.getState().isDark)
     return watchSystemTheme(setSystemDark)
   }, [setSystemDark])
 

@@ -31,8 +31,8 @@ export const useUIStore = create<UIState>((set, get) => ({
   sidebarPanel: 'files',
   sidebarWidth: 260,
   showCommandPalette: false,
-  themeMode: 'system',
-  isDark: true, // Default dark
+  themeMode: 'dark',
+  isDark: true,
   chatOpen: true,
   chatWidth: 400,
 
