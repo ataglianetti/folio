@@ -234,12 +234,29 @@ export const lightPalette: ColorPalette = {
   popoverShadow: '0 4px 20px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)',
 }
 
+/** Convert camelCase token name to kebab-case CSS custom property */
+function camelToKebab(s: string): string {
+  return s.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)
+}
+
+/** Sync all palette tokens to CSS custom properties on :root */
+function syncTokensToCss(tokens: ColorPalette): void {
+  const s = document.documentElement.style
+  for (const [key, value] of Object.entries(tokens)) {
+    s.setProperty(`--${camelToKebab(key)}`, value)
+  }
+}
+
 /** Apply palette to CSS custom properties */
 export function applyTheme(isDark: boolean): void {
   const t = isDark ? darkPalette : lightPalette
   const s = document.documentElement.style
 
-  // Backgrounds (mapped to existing var names for compatibility)
+  // Auto-sync all palette tokens as --kebab-case vars
+  syncTokensToCss(t)
+
+  // Legacy aliases — existing components reference these var names.
+  // Migrate components to the canonical names over time, then remove these.
   s.setProperty('--bg-primary', isDark ? '#1a1a18' : '#faf9f6')
   s.setProperty('--bg-sidebar', isDark ? '#1e1e1c' : '#f5f4f0')
   s.setProperty('--bg-surface', t.containerBg)
@@ -247,75 +264,16 @@ export function applyTheme(isDark: boolean): void {
   s.setProperty('--bg-hover', t.surfaceHover)
   s.setProperty('--bg-active', t.surfaceActive)
   s.setProperty('--bg-code', t.codeBg)
-
-  // Text
-  s.setProperty('--text-primary', t.textPrimary)
-  s.setProperty('--text-secondary', t.textSecondary)
-  s.setProperty('--text-tertiary', t.textTertiary)
   s.setProperty('--text-muted', t.textTertiary)
-
-  // Borders
   s.setProperty('--border', t.containerBorder)
   s.setProperty('--border-subtle', isDark ? '#2d2d28' : '#eeede8')
-
-  // Accent
   s.setProperty('--accent', t.accent)
   s.setProperty('--accent-light', t.accentLight)
   s.setProperty('--accent-soft', t.accentSoft)
-
   s.setProperty('--selection', isDark ? 'rgba(217,119,87,0.2)' : 'rgba(217,119,87,0.12)')
-
-  // Status
   s.setProperty('--success', t.statusComplete)
   s.setProperty('--error', t.statusError)
   s.setProperty('--warning', t.statusPermission)
-
-  // Surfaces
-  s.setProperty('--surface-primary', t.surfacePrimary)
-  s.setProperty('--surface-secondary', t.surfaceSecondary)
-
-  // User bubble
-  s.setProperty('--user-bubble', t.userBubble)
-  s.setProperty('--user-bubble-border', t.userBubbleBorder)
-  s.setProperty('--user-bubble-text', t.userBubbleText)
-
-  // Tool
-  s.setProperty('--tool-bg', t.toolBg)
-  s.setProperty('--tool-border', t.toolBorder)
-  s.setProperty('--tool-running-border', t.toolRunningBorder)
-  s.setProperty('--tool-running-bg', t.toolRunningBg)
-
-  // Send button
-  s.setProperty('--send-bg', t.sendBg)
-  s.setProperty('--send-hover', t.sendHover)
-  s.setProperty('--send-disabled', t.sendDisabled)
-  s.setProperty('--stop-bg', t.stopBg)
-
-  // Permission
-  s.setProperty('--perm-border', t.permissionBorder)
-  s.setProperty('--perm-shadow', t.permissionShadow)
-  s.setProperty('--perm-header-bg', t.permissionHeaderBg)
-  s.setProperty('--perm-header-border', t.permissionHeaderBorder)
-  s.setProperty('--perm-allow-bg', t.permissionAllowBg)
-  s.setProperty('--perm-allow-hover', t.permissionAllowHoverBg)
-  s.setProperty('--perm-allow-border', t.permissionAllowBorder)
-  s.setProperty('--perm-deny-bg', t.permissionDenyBg)
-  s.setProperty('--perm-deny-hover', t.permissionDenyHoverBg)
-  s.setProperty('--perm-deny-border', t.permissionDenyBorder)
-
-  // Scrollbar
-  s.setProperty('--scroll-thumb', t.scrollThumb)
-  s.setProperty('--scroll-thumb-hover', t.scrollThumbHover)
-
-  // Popover
-  s.setProperty('--popover-bg', t.popoverBg)
-  s.setProperty('--popover-border', t.popoverBorder)
-
-  // Placeholder
-  s.setProperty('--placeholder', t.placeholder)
-
-  // Input
-  s.setProperty('--input-focus-border', t.inputFocusBorder)
 
   document.documentElement.classList.toggle('dark', isDark)
 }

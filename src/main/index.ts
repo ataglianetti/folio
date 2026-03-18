@@ -50,6 +50,9 @@ function createWindow(): void {
   vaultManager.onFileChange = (event) => {
     mainWindow?.webContents.send('folio:file-change', event)
   }
+  vaultManager.onIndexError = (error) => {
+    mainWindow?.webContents.send('folio:index-error', error)
+  }
 
   // Wire Claude events to renderer
   sessionManager.on('event', (event: NormalizedEvent) => {

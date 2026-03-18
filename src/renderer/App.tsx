@@ -40,12 +40,15 @@ function App() {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [toggleCommandPalette, toggleChat])
 
-  // Listen for index-complete events
+  // Listen for index events
   useEffect(() => {
-    const unsub = window.folio.vault.onIndexComplete((count) => {
-      useVaultStore.setState({ noteCount: count })
+    const unsubComplete = window.folio.vault.onIndexComplete((count) => {
+      useVaultStore.setState({ noteCount: count, indexError: null })
     })
-    return unsub
+    const unsubError = window.folio.vault.onIndexError((error) => {
+      useVaultStore.setState({ indexError: error })
+    })
+    return () => { unsubComplete(); unsubError() }
   }, [])
 
   const handleOpenVault = useCallback(async () => {

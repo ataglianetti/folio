@@ -6,6 +6,7 @@ interface VaultState {
   vaultPath: string | null
   isOpen: boolean
   noteCount: number
+  indexError: string | null
 
   // File tree
   fileTree: FileEntry[]
@@ -36,6 +37,7 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   vaultPath: null,
   isOpen: false,
   noteCount: 0,
+  indexError: null,
   fileTree: [],
   expandedPaths: new Set<string>(),
   currentNotePath: null,

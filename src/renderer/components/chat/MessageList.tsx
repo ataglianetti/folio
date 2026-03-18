@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useClaudeStore, type Message } from '../../stores/claude'
 import { UserMessage } from './UserMessage'
@@ -7,19 +7,30 @@ import { ToolCard } from './ToolCard'
 import { PermissionCard } from './PermissionCard'
 import { Sparkle } from '@phosphor-icons/react'
 
+const NEAR_BOTTOM_THRESHOLD = 60
+
 export function MessageList() {
   const messages = useClaudeStore((s) => s.messages)
   const permissionQueue = useClaudeStore((s) => s.permissionQueue)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const isNearBottomRef = useRef(true)
 
-  useEffect(() => {
+  // Track whether user is scrolled near the bottom
+  const handleScroll = useCallback(() => {
     const el = scrollRef.current
     if (!el) return
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100
-    if (isNearBottom) {
-      el.scrollTop = el.scrollHeight
+    isNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_THRESHOLD
+  }, [])
+
+  // Build a scroll trigger from content that changes — auto-scroll only when near bottom
+  const lastMsg = messages[messages.length - 1]
+  const scrollTrigger = `${messages.length}:${lastMsg?.content?.length ?? 0}:${permissionQueue.length}`
+
+  useEffect(() => {
+    if (isNearBottomRef.current && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages, permissionQueue])
+  }, [scrollTrigger])
 
   if (messages.length === 0) {
     return (
@@ -43,6 +54,7 @@ export function MessageList() {
   return (
     <div
       ref={scrollRef}
+      onScroll={handleScroll}
       className="flex-1 overflow-y-auto overflow-x-hidden px-4 pt-2"
       style={{ paddingBottom: 28 }}
     >

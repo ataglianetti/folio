@@ -1,7 +1,7 @@
 import { createServer } from 'http'
 import type { Server, IncomingMessage, ServerResponse } from 'http'
 import { EventEmitter } from 'events'
-import { writeFileSync, mkdirSync, unlinkSync, existsSync } from 'fs'
+import { writeFileSync, mkdirSync, unlinkSync, existsSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
@@ -58,13 +58,18 @@ export class PermissionServer extends EventEmitter {
   private appSecret: string
   private runToken: string | null = null
   private settingsPath: string | null = null
+  private configDir: string
   private pending: Map<string, PendingPermission> = new Map()
   private scopedAllows: Set<string> = new Set()
   private _ready = false
+  private _exitHandler: (() => void) | null = null
 
   constructor() {
     super()
     this.appSecret = randomUUID()
+    // Per-instance directory to isolate runs and simplify cleanup
+    this.configDir = join(tmpdir(), `folio-hook-config-${randomUUID().slice(0, 8)}`)
+    this.registerExitCleanup()
   }
 
   get isReady(): boolean {
@@ -111,9 +116,8 @@ export class PermissionServer extends EventEmitter {
     this.scopedAllows.clear()
 
     // Write settings file with hook config
-    const configDir = join(tmpdir(), 'folio-hook-config')
-    mkdirSync(configDir, { recursive: true })
-    this.settingsPath = join(configDir, `folio-hook-${this.runToken}.json`)
+    mkdirSync(this.configDir, { recursive: true })
+    this.settingsPath = join(this.configDir, `folio-hook-${this.runToken}.json`)
 
     const hookUrl = `http://127.0.0.1:${this.port}/hook/pre-tool-use/${this.appSecret}/${this.runToken}`
 
@@ -189,13 +193,44 @@ export class PermissionServer extends EventEmitter {
     return true
   }
 
-  /** Stop the server. */
+  /** Stop the server and clean up all temp files. */
   stop(): void {
     this.unregisterRun()
+    this.cleanupConfigDir()
+    this.removeExitCleanup()
     if (this.server) {
       this.server.close()
       this.server = null
       this._ready = false
+    }
+  }
+
+  /** Remove the entire per-instance config directory. */
+  private cleanupConfigDir(): void {
+    try {
+      if (existsSync(this.configDir)) {
+        rmSync(this.configDir, { recursive: true, force: true })
+      }
+    } catch {
+      // Best effort — don't crash on cleanup failure
+    }
+  }
+
+  /** Register process exit handlers for cleanup. */
+  private registerExitCleanup(): void {
+    this._exitHandler = () => this.cleanupConfigDir()
+    process.on('exit', this._exitHandler)
+    process.on('SIGTERM', this._exitHandler)
+    process.on('SIGINT', this._exitHandler)
+  }
+
+  /** Remove process exit handlers. */
+  private removeExitCleanup(): void {
+    if (this._exitHandler) {
+      process.removeListener('exit', this._exitHandler)
+      process.removeListener('SIGTERM', this._exitHandler)
+      process.removeListener('SIGINT', this._exitHandler)
+      this._exitHandler = null
     }
   }
 

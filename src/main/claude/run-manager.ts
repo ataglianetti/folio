@@ -45,6 +45,7 @@ export class RunManager extends EventEmitter {
   private toolCallCount = 0
   private sawPermissionRequest = false
   private _requestId: string | null = null
+  private _cleaningUp = false
 
   get requestId(): string | null {
     return this._requestId
@@ -61,6 +62,9 @@ export class RunManager extends EventEmitter {
   startRun(requestId: string, options: RunOptions): void {
     if (this.isRunning) {
       throw new Error('A run is already in progress')
+    }
+    if (this._cleaningUp) {
+      throw new Error('Previous run is still cleaning up — try again shortly')
     }
 
     this._requestId = requestId
@@ -133,11 +137,13 @@ export class RunManager extends EventEmitter {
       const sessionId = this.extractSessionId()
       this.emit('exit', requestId, code, signal, sessionId)
       // Clean up after a delay so diagnostics are available
+      this._cleaningUp = true
       setTimeout(() => {
         if (this._requestId === requestId) {
           this.process = null
           this._requestId = null
         }
+        this._cleaningUp = false
       }, 5000)
     })
 

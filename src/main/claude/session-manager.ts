@@ -89,6 +89,13 @@ export class SessionManager extends EventEmitter {
 
   /** Reset session (start fresh conversation). */
   resetSession(): void {
+    // Cancel active run before clearing state
+    if (this.runManager.isRunning) {
+      this.cancel()
+      this.permissionServer.unregisterRun()
+    }
+
+    this._activeRequestId = null
     this._sessionId = null
     this._lastResult = null
     this._model = null

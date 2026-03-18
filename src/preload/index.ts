@@ -22,6 +22,7 @@ export interface FolioAPI {
 
     onIndexComplete: (callback: (count: number) => void) => () => void
     onFileChange: (callback: (event: { path: string; kind: string }) => void) => () => void
+    onIndexError: (callback: (error: string) => void) => () => void
   }
 
   claude: {
@@ -64,6 +65,12 @@ const api: FolioAPI = {
       const handler = (_event: Electron.IpcRendererEvent, event: { path: string; kind: string }) => callback(event)
       ipcRenderer.on('folio:file-change', handler)
       return () => ipcRenderer.removeListener('folio:file-change', handler)
+    },
+
+    onIndexError: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, error: string) => callback(error)
+      ipcRenderer.on('folio:index-error', handler)
+      return () => ipcRenderer.removeListener('folio:index-error', handler)
     },
   },
 

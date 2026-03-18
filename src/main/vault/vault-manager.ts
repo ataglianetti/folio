@@ -1,5 +1,5 @@
-import { readFileSync, writeFileSync, readdirSync, mkdirSync, unlinkSync, statSync } from 'fs'
-import { join, relative, extname, dirname } from 'path'
+import { readFileSync, writeFileSync, readdirSync, mkdirSync, unlinkSync, statSync, realpathSync } from 'fs'
+import { join, relative, extname, dirname, resolve, isAbsolute } from 'path'
 import { Indexer } from './indexer'
 import { FileWatcher } from './file-watcher'
 import type { FileChangeEvent } from './file-watcher'
@@ -19,6 +19,8 @@ export class VaultManager {
   onIndexComplete: ((count: number) => void) | null = null
   // Callback for file changes
   onFileChange: ((event: FileChangeEvent) => void) | null = null
+  // Callback for indexing errors
+  onIndexError: ((error: string) => void) | null = null
 
   constructor() {
     this.watcher = new FileWatcher()
@@ -47,19 +49,18 @@ export class VaultManager {
         this.onIndexComplete?.(count)
       } catch (err) {
         console.error('Full index failed:', err)
+        this.onIndexError?.(err instanceof Error ? err.message : String(err))
       }
     })
   }
 
   readNote(notePath: string): string {
-    this.ensureVault()
-    const fullPath = join(this.vaultPath!, notePath)
+    const fullPath = this.safePath(notePath)
     return readFileSync(fullPath, 'utf-8')
   }
 
   writeNote(notePath: string, content: string): void {
-    this.ensureVault()
-    const fullPath = join(this.vaultPath!, notePath)
+    const fullPath = this.safePath(notePath)
     mkdirSync(dirname(fullPath), { recursive: true })
     writeFileSync(fullPath, content, 'utf-8')
 
@@ -68,8 +69,8 @@ export class VaultManager {
   }
 
   listDirectory(dirPath: string): FileEntry[] {
-    this.ensureVault()
-    const fullPath = dirPath ? join(this.vaultPath!, dirPath) : this.vaultPath!
+    const fullPath = dirPath ? this.safePath(dirPath) : this.vaultPath!
+    if (!dirPath) this.ensureVault()
 
     const entries = readdirSync(fullPath, { withFileTypes: true })
     const result: FileEntry[] = []
@@ -101,8 +102,7 @@ export class VaultManager {
   }
 
   createNote(notePath: string, noteType?: string): void {
-    this.ensureVault()
-    const fullPath = join(this.vaultPath!, notePath)
+    const fullPath = this.safePath(notePath)
     mkdirSync(dirname(fullPath), { recursive: true })
 
     let content = ''
@@ -116,8 +116,7 @@ export class VaultManager {
   }
 
   deleteNote(notePath: string): void {
-    this.ensureVault()
-    const fullPath = join(this.vaultPath!, notePath)
+    const fullPath = this.safePath(notePath)
     unlinkSync(fullPath)
     this.indexer!.removeFile(this.vaultPath!, fullPath)
   }
@@ -146,6 +145,44 @@ export class VaultManager {
     this.indexer?.close()
     this.indexer = null
     this.vaultPath = null
+  }
+
+  /**
+   * Resolve a relative note path to an absolute path within the vault.
+   * Throws if the resolved path escapes vault bounds.
+   */
+  private safePath(notePath: string): string {
+    this.ensureVault()
+
+    // Reject absolute paths outright
+    if (isAbsolute(notePath)) {
+      throw new Error('Absolute paths are not allowed')
+    }
+
+    const resolved = resolve(this.vaultPath!, notePath)
+
+    // Check that resolved path is within vault root.
+    // Use realpathSync where possible (follows symlinks), fall back to resolve
+    // for paths that don't exist yet (e.g. createNote).
+    let canonical: string
+    try {
+      canonical = realpathSync(resolved)
+    } catch {
+      canonical = resolved
+    }
+
+    let vaultCanonical: string
+    try {
+      vaultCanonical = realpathSync(this.vaultPath!)
+    } catch {
+      vaultCanonical = this.vaultPath!
+    }
+
+    if (!canonical.startsWith(vaultCanonical + '/') && canonical !== vaultCanonical) {
+      throw new Error('Path escapes vault bounds')
+    }
+
+    return resolved
   }
 
   private ensureVault(): void {
