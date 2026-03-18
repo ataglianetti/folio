@@ -3,3 +3,8 @@ dist/
 .folio/
 *.db
 .DS_Store
+.env
+.env.*
+!.env.example
+*.log
+.planning/codebase/
