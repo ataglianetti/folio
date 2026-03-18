@@ -25,7 +25,7 @@ export default defineConfig({
       },
       rollupOptions: {
         output: {
-          entryFileNames: 'index.js',
+          entryFileNames: 'index.cjs',
         },
       },
     }

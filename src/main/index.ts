@@ -18,11 +18,17 @@ function createWindow(): void {
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
     },
+  })
+
+  // Forward renderer console to main process stdout
+  mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    const tag = ['LOG', 'WARN', 'ERR'][level] || 'LOG'
+    console.log(`[Renderer:${tag}] ${message} (${sourceId}:${line})`)
   })
 
   // Open devtools in dev
