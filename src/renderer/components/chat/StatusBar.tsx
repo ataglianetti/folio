@@ -1,4 +1,11 @@
+import { FolderOpen, Terminal } from '@phosphor-icons/react'
 import { useClaudeStore } from '../../stores/claude'
+import { useVaultStore } from '../../stores/vault'
+
+function compactPath(fullPath: string): string {
+  const parts = fullPath.replace(/\/$/, '').split('/')
+  return parts[parts.length - 1] || fullPath
+}
 
 export function StatusBar() {
   const status = useClaudeStore((s) => s.status)
@@ -6,6 +13,7 @@ export function StatusBar() {
   const lastResult = useClaudeStore((s) => s.lastResult)
   const sessionId = useClaudeStore((s) => s.sessionId)
   const resetSession = useClaudeStore((s) => s.resetSession)
+  const vaultPath = useVaultStore((s) => s.vaultPath)
 
   const isActive = status === 'running' || status === 'connecting'
 
@@ -19,6 +27,7 @@ export function StatusBar() {
         color: 'var(--text-tertiary)',
       }}
     >
+      {/* Left — activity or vault path */}
       <div className="flex items-center gap-2 min-w-0">
         {isActive && (
           <>
@@ -35,11 +44,15 @@ export function StatusBar() {
           </span>
         )}
 
-        {!isActive && !lastResult && sessionId && (
-          <span className="truncate">Session active</span>
+        {!isActive && !lastResult && vaultPath && (
+          <span className="flex items-center gap-1 truncate">
+            <FolderOpen size={11} className="flex-shrink-0" />
+            {compactPath(vaultPath)}
+          </span>
         )}
       </div>
 
+      {/* Right — actions */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
         {sessionId && !isActive && (
           <button
