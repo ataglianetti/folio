@@ -9,8 +9,8 @@ interface Props {
 
 export const AssistantMessage = memo(function AssistantMessage({ message }: Props) {
   return (
-    <div className="mb-3">
-      <div className="text-[13px] leading-relaxed text-[var(--text-primary)] prose-folio">
+    <div className="py-1">
+      <div className="text-[13px] leading-[1.6] prose-cloud min-w-0 max-w-[92%]">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
           {message.content}
         </ReactMarkdown>

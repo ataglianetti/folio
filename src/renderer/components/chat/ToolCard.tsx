@@ -2,13 +2,13 @@ import { useState, useMemo } from 'react'
 import {
   Terminal,
   PencilSimple,
-  File,
+  FileText,
   MagnifyingGlass,
   Globe,
-  Gear,
+  Wrench,
   CaretDown,
   CaretRight,
-  CircleNotch,
+  SpinnerGap,
   CheckCircle,
   XCircle,
 } from '@phosphor-icons/react'
@@ -21,9 +21,9 @@ interface Props {
 const TOOL_ICONS: Record<string, typeof Terminal> = {
   Bash: Terminal,
   Edit: PencilSimple,
-  Write: File,
+  Write: FileText,
   MultiEdit: PencilSimple,
-  Read: File,
+  Read: FileText,
   Glob: MagnifyingGlass,
   Grep: MagnifyingGlass,
   WebFetch: Globe,
@@ -32,7 +32,7 @@ const TOOL_ICONS: Record<string, typeof Terminal> = {
 
 export function ToolCard({ message }: Props) {
   const [expanded, setExpanded] = useState(false)
-  const Icon = TOOL_ICONS[message.toolName ?? ''] ?? Gear
+  const Icon = TOOL_ICONS[message.toolName ?? ''] ?? Wrench
   const isRunning = message.toolStatus === 'running'
   const isError = message.toolStatus === 'error'
 
@@ -46,60 +46,126 @@ export function ToolCard({ message }: Props) {
   }, [message.toolInput])
 
   const summary = useMemo(() => {
-    if (!parsedInput || typeof parsedInput === 'string') return null
-    // Show first relevant field as summary
+    if (!parsedInput || typeof parsedInput === 'string') return message.toolName
     if (parsedInput.command) return parsedInput.command
     if (parsedInput.file_path) return parsedInput.file_path
     if (parsedInput.pattern) return parsedInput.pattern
     if (parsedInput.url) return parsedInput.url
     if (parsedInput.query) return parsedInput.query
-    return null
-  }, [parsedInput])
+    return message.toolName
+  }, [parsedInput, message.toolName])
 
-  return (
-    <div className="mb-2">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-code)]
-          hover:bg-[var(--bg-hover)] transition-colors cursor-pointer text-left"
+  if (!expanded) {
+    return (
+      <div
+        className="flex items-start gap-1 cursor-pointer py-[2px]"
+        onClick={() => setExpanded(true)}
       >
-        {/* Status indicator */}
-        {isRunning ? (
-          <CircleNotch size={14} className="text-[var(--accent)] animate-spin flex-shrink-0" />
-        ) : isError ? (
-          <XCircle size={14} className="text-red-400 flex-shrink-0" />
-        ) : (
-          <CheckCircle size={14} className="text-green-400 flex-shrink-0" />
-        )}
-
-        <Icon size={14} className="text-[var(--text-muted)] flex-shrink-0" />
-
-        <span className="text-[12px] font-medium text-[var(--text-secondary)] flex-shrink-0">
+        <CaretRight size={10} className="mt-[3px] flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+        <span className="text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>
+          {isRunning && (
+            <SpinnerGap size={10} className="inline animate-spin mr-1" style={{ color: 'var(--accent)' }} />
+          )}
           {message.toolName}
-        </span>
-
-        {summary && (
-          <span className="text-[11px] text-[var(--text-muted)] truncate min-w-0 flex-1 font-mono">
-            {typeof summary === 'string' ? summary.slice(0, 80) : ''}
-          </span>
-        )}
-
-        <span className="flex-shrink-0 ml-auto">
-          {expanded ? (
-            <CaretDown size={12} className="text-[var(--text-muted)]" />
-          ) : (
-            <CaretRight size={12} className="text-[var(--text-muted)]" />
+          {summary !== message.toolName && (
+            <span className="font-mono ml-1 opacity-70">
+              {typeof summary === 'string' ? summary.slice(0, 60) : ''}
+            </span>
+          )}
+          {!isRunning && !isError && (
+            <CheckCircle size={10} weight="fill" className="inline ml-1" style={{ color: 'var(--success)' }} />
+          )}
+          {isError && (
+            <XCircle size={10} weight="fill" className="inline ml-1" style={{ color: 'var(--error)' }} />
           )}
         </span>
-      </button>
+      </div>
+    )
+  }
 
-      {expanded && parsedInput && (
-        <div className="mx-3 mt-1 mb-1 px-3 py-2 rounded-md bg-[var(--bg-input)] text-[11px] font-mono text-[var(--text-secondary)] overflow-x-auto whitespace-pre-wrap max-h-[200px] overflow-y-auto">
-          {typeof parsedInput === 'string'
-            ? parsedInput
-            : JSON.stringify(parsedInput, null, 2)}
+  return (
+    <div className="py-1">
+      {/* Collapse header */}
+      <div
+        className="flex items-center gap-1 cursor-pointer"
+        onClick={() => setExpanded(false)}
+      >
+        <CaretDown size={10} style={{ color: 'var(--text-tertiary)' }} />
+        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+          {message.toolName}
+        </span>
+      </div>
+
+      {/* Timeline detail */}
+      <div className="relative pl-6 mt-1">
+        {/* Vertical line */}
+        <div
+          className="absolute top-1 bottom-1"
+          style={{ left: 10, width: 1, background: 'var(--surface-primary)' }}
+        />
+
+        {/* Node */}
+        <div className="relative">
+          {/* Timeline dot */}
+          <div
+            className="absolute flex items-center justify-center"
+            style={{
+              left: -20,
+              top: 1,
+              width: 20,
+              height: 20,
+              borderRadius: '50%',
+              background: isRunning ? 'var(--tool-running-bg)' : 'var(--bg-surface)',
+              border: `1px solid ${isRunning ? 'var(--tool-running-border)' : 'var(--tool-border)'}`,
+            }}
+          >
+            {isRunning ? (
+              <SpinnerGap size={10} className="animate-spin" style={{ color: 'var(--accent)' }} />
+            ) : (
+              <Icon size={10} style={{ color: 'var(--text-tertiary)' }} />
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+            <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+              {message.toolName}
+            </span>
+          </div>
+
+          {parsedInput && (
+            <pre
+              className="mt-1 whitespace-pre-wrap break-all overflow-x-auto"
+              style={{
+                fontSize: 10,
+                lineHeight: 1.4,
+                padding: '6px 8px',
+                borderRadius: 6,
+                background: 'var(--bg-code)',
+                color: 'var(--text-secondary)',
+                maxHeight: 80,
+                border: '1px solid var(--border)',
+              }}
+            >
+              {typeof parsedInput === 'string'
+                ? parsedInput
+                : JSON.stringify(parsedInput, null, 2)}
+            </pre>
+          )}
+
+          {!isRunning && (
+            <div
+              className="mt-1 text-[10px] px-2 py-0.5 rounded-full inline-block"
+              style={{
+                background: isError ? 'var(--perm-deny-bg)' : 'rgba(122,172,140,0.1)',
+                color: isError ? 'var(--error)' : 'var(--success)',
+              }}
+            >
+              {isError ? 'Error' : 'Complete'}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }

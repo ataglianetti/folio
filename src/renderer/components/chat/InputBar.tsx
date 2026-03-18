@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { PaperPlaneRight, Stop } from '@phosphor-icons/react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowUp, Square } from '@phosphor-icons/react'
 import { useClaudeStore } from '../../stores/claude'
 
 export function InputBar() {
@@ -10,6 +11,7 @@ export function InputBar() {
   const cancel = useClaudeStore((s) => s.cancel)
 
   const isRunning = status === 'running' || status === 'connecting'
+  const canSend = input.trim().length > 0 && !isRunning
 
   const handleSend = useCallback(() => {
     const trimmed = input.trim()
@@ -28,55 +30,99 @@ export function InputBar() {
     [handleSend]
   )
 
-  // Auto-resize textarea
+  // Auto-resize
   useEffect(() => {
     const el = textareaRef.current
     if (!el) return
     el.style.height = 'auto'
-    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+    el.style.height = Math.min(el.scrollHeight, 140) + 'px'
   }, [input])
 
+  const placeholder = isRunning
+    ? 'Type to queue a message...'
+    : 'Ask Claude Code anything...'
+
   return (
-    <div className="flex-shrink-0 border-t border-[var(--border)] p-3">
-      <div className="flex items-end gap-2 rounded-lg bg-[var(--bg-input)] border border-[var(--border)] focus-within:border-[var(--accent)] transition-colors px-3 py-2">
+    <div className="flex-shrink-0 px-3 pb-3 pt-1">
+      <div
+        className="flex items-center w-full transition-colors"
+        style={{
+          minHeight: 50,
+          borderRadius: 25,
+          background: 'var(--bg-input)',
+          border: '1px solid var(--border)',
+          padding: '0 6px 0 16px',
+        }}
+      >
         <textarea
           ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={isRunning ? 'Claude is working...' : 'Ask Claude...'}
-          disabled={isRunning}
+          placeholder={placeholder}
           rows={1}
-          className="flex-1 bg-transparent outline-none resize-none text-[13px] leading-relaxed
-            text-[var(--text-primary)] placeholder:text-[var(--text-muted)]
-            disabled:opacity-50 max-h-[120px]"
+          className="flex-1 bg-transparent outline-none resize-none"
+          style={{
+            fontSize: 14,
+            lineHeight: '20px',
+            paddingTop: 15,
+            paddingBottom: 15,
+            color: 'var(--text-primary)',
+            maxHeight: 140,
+          }}
+          onFocus={(e) => {
+            const parent = e.currentTarget.parentElement
+            if (parent) parent.style.borderColor = 'var(--input-focus-border)'
+          }}
+          onBlur={(e) => {
+            const parent = e.currentTarget.parentElement
+            if (parent) parent.style.borderColor = 'var(--border)'
+          }}
         />
 
-        {isRunning ? (
-          <button
-            onClick={() => cancel()}
-            className="flex-shrink-0 p-1 rounded-md hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
-            title="Stop"
-          >
-            <Stop size={18} weight="fill" className="text-[var(--accent)]" />
-          </button>
-        ) : (
-          <button
-            onClick={handleSend}
-            disabled={!input.trim()}
-            className="flex-shrink-0 p-1 rounded-md hover:bg-[var(--bg-hover)] transition-colors
-              cursor-pointer disabled:opacity-30 disabled:cursor-default"
-            title="Send (Enter)"
-          >
-            <PaperPlaneRight size={18} className="text-[var(--accent)]" />
-          </button>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between mt-1.5 px-1">
-        <span className="text-[10px] text-[var(--text-muted)]">
-          Enter to send, Shift+Enter for newline
-        </span>
+        <div className="flex items-center gap-1 shrink-0 ml-2">
+          {isRunning ? (
+            <button
+              onClick={() => cancel()}
+              className="flex items-center justify-center cursor-pointer transition-colors"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                background: 'var(--stop-bg)',
+                color: '#ffffff',
+              }}
+              title="Stop"
+            >
+              <Square size={12} weight="fill" />
+            </button>
+          ) : (
+            <AnimatePresence>
+              {canSend && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.1 }}
+                  onClick={handleSend}
+                  className="flex items-center justify-center cursor-pointer transition-colors"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    background: 'var(--send-bg)',
+                    color: '#ffffff',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--send-hover)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--send-bg)' }}
+                  title="Send (Enter)"
+                >
+                  <ArrowUp size={16} weight="bold" />
+                </motion.button>
+              )}
+            </AnimatePresence>
+          )}
+        </div>
       </div>
     </div>
   )

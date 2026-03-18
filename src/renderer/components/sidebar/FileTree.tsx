@@ -73,24 +73,32 @@ function FileTreeNode({
     <div>
       <button
         onClick={handleClick}
-        className={`
-          w-full text-left h-7 flex items-center gap-1 rounded-[4px] mx-1
-          hover:bg-[var(--bg-hover)] transition-all duration-150 cursor-pointer
-          ${isActive ? 'bg-[var(--bg-active)] text-[var(--accent)] border-l-2 border-l-[var(--accent)]' : 'text-[var(--text-secondary)] border-l-2 border-l-transparent'}
-        `}
-        style={{ paddingLeft: `${depth * 14 + 6}px`, width: 'calc(100% - 8px)' }}
+        className="w-full text-left h-7 flex items-center gap-1 mx-1 rounded-[4px] cursor-pointer transition-all duration-150"
+        style={{
+          paddingLeft: `${depth * 14 + 8}px`,
+          width: 'calc(100% - 8px)',
+          color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+          background: isActive ? 'var(--accent-light)' : 'transparent',
+          borderLeft: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+        }}
+        onMouseEnter={(e) => {
+          if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)'
+        }}
+        onMouseLeave={(e) => {
+          if (!isActive) e.currentTarget.style.background = 'transparent'
+        }}
       >
         {entry.is_directory ? (
           <>
             {isExpanded ? (
-              <ChevronDown size={12} className="flex-shrink-0 opacity-50" />
+              <ChevronDown size={11} className="flex-shrink-0 opacity-50" />
             ) : (
-              <ChevronRight size={12} className="flex-shrink-0 opacity-50" />
+              <ChevronRight size={11} className="flex-shrink-0 opacity-50" />
             )}
             {isExpanded ? (
-              <FolderOpen size={14} className="flex-shrink-0 opacity-60" />
+              <FolderOpen size={13} className="flex-shrink-0 opacity-50" />
             ) : (
-              <Folder size={14} className="flex-shrink-0 opacity-60" />
+              <Folder size={13} className="flex-shrink-0 opacity-50" />
             )}
           </>
         ) : (
@@ -99,7 +107,7 @@ function FileTreeNode({
             <FileIcon name={entry.name} />
           </>
         )}
-        <span className="truncate ml-0.5">{displayName(entry.name)}</span>
+        <span className="truncate ml-0.5 text-[12px]">{displayName(entry.name)}</span>
       </button>
       {isExpanded && children && (
         <div>
@@ -123,14 +131,12 @@ function FileTreeNode({
 
 function FileIcon({ name }: { name: string }) {
   if (name.endsWith('.md')) {
-    return <FileText size={14} className="flex-shrink-0 opacity-50" />
+    return <FileText size={13} className="flex-shrink-0 opacity-40" />
   }
-  return <File size={14} className="flex-shrink-0 opacity-50" />
+  return <File size={13} className="flex-shrink-0 opacity-40" />
 }
 
 function displayName(name: string): string {
-  if (name.endsWith('.md')) {
-    return name.slice(0, -3)
-  }
+  if (name.endsWith('.md')) return name.slice(0, -3)
   return name
 }

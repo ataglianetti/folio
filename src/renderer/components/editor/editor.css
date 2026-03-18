@@ -1,7 +1,7 @@
 .folio-editor {
   max-width: 680px;
   margin: 0 auto;
-  padding: 3rem 2rem 6rem;
+  padding: 2rem 2rem 6rem;
   min-height: 100%;
   display: flex;
   flex-direction: column;
@@ -21,14 +21,12 @@
   overflow: visible;
 }
 
-/* Wikilink widget hover */
 .cm-wikilink-text:hover {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
-/* Placeholder for empty documents */
 .cm-wrapper .cm-placeholder {
-  color: var(--text-muted);
+  color: var(--placeholder);
   font-style: normal;
 }

@@ -1,39 +1,72 @@
 @import "tailwindcss";
 
-/* Default dark theme — JS theme system overrides these on load */
+/* ─── Default dark palette (JS overrides on load) ─── */
 :root {
   --bg-primary: #1a1a18;
-  --bg-sidebar: #161614;
+  --bg-sidebar: #1e1e1c;
   --bg-surface: #242422;
   --bg-input: #2a2a27;
-  --bg-hover: #353530;
-  --bg-active: rgba(217, 119, 87, 0.1);
-  --bg-code: #2a2a27;
+  --bg-hover: rgba(255,255,255,0.05);
+  --bg-active: rgba(255,255,255,0.08);
+  --bg-code: #1a1a18;
 
   --text-primary: #ccc9c0;
-  --text-secondary: #8a8a80;
-  --text-muted: #555550;
+  --text-secondary: #c0bdb2;
+  --text-tertiary: #76766e;
+  --text-muted: #76766e;
 
   --border: #3b3b36;
   --border-subtle: #2d2d28;
 
   --accent: #d97757;
-  --accent-soft: rgba(217, 119, 87, 0.15);
+  --accent-light: rgba(217,119,87,0.1);
+  --accent-soft: rgba(217,119,87,0.15);
 
-  --selection: rgba(217, 119, 87, 0.2);
-
+  --selection: rgba(217,119,87,0.2);
   --success: #7aac8c;
   --error: #c47060;
-  --warning: #f59e0b;
+  --warning: #d97757;
+
+  --surface-primary: #353530;
+  --surface-secondary: #42423d;
+
+  --user-bubble: #353530;
+  --user-bubble-border: #4a4a45;
+  --user-bubble-text: #ccc9c0;
+
+  --tool-bg: #353530;
+  --tool-border: #4a4a45;
+  --tool-running-border: rgba(217,119,87,0.3);
+  --tool-running-bg: rgba(217,119,87,0.05);
+
+  --send-bg: #d97757;
+  --send-hover: #c96442;
+  --send-disabled: rgba(217,119,87,0.3);
+  --stop-bg: #ef4444;
+
+  --perm-border: rgba(245,158,11,0.3);
+  --perm-shadow: 0 2px 12px rgba(245,158,11,0.08);
+  --perm-header-bg: rgba(245,158,11,0.06);
+  --perm-header-border: rgba(245,158,11,0.12);
+  --perm-allow-bg: rgba(34,197,94,0.1);
+  --perm-allow-hover: rgba(34,197,94,0.22);
+  --perm-allow-border: rgba(34,197,94,0.25);
+  --perm-deny-bg: rgba(239,68,68,0.08);
+  --perm-deny-hover: rgba(239,68,68,0.18);
+  --perm-deny-border: rgba(239,68,68,0.22);
+
+  --scroll-thumb: rgba(255,255,255,0.15);
+  --scroll-thumb-hover: rgba(255,255,255,0.25);
+  --popover-bg: #292927;
+  --popover-border: #3b3b36;
+  --placeholder: #6b6b60;
+  --input-focus-border: rgba(217,119,87,0.4);
 
   color-scheme: dark;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* ─── Reset ─── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
@@ -45,129 +78,116 @@ body {
   line-height: 1.5;
 }
 
-#root {
-  height: 100vh;
-  overflow: hidden;
-}
+#root { height: 100vh; overflow: hidden; }
 
-/* Scrollbar — 4px, hover-visible only */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
+/* ─── Scrollbar (4px, clui-cc style) ─── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 2px;
-}
-
-*:hover > ::-webkit-scrollbar-thumb,
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-
-/* Prevent text selection */
-.sidebar,
-.file-tree button,
-.sidebar button {
+/* ─── Selection prevention ─── */
+.sidebar, .file-tree button, .sidebar button {
   user-select: none;
   -webkit-user-select: none;
 }
 
-/* Focus ring for keyboard nav */
+/* ─── Focus ring ─── */
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
   border-radius: 4px;
 }
 
-/* macOS traffic light / titlebar */
-.titlebar-drag {
-  -webkit-app-region: drag;
+/* ─── Drag region ─── */
+.titlebar-drag { -webkit-app-region: drag; }
+.titlebar-no-drag { -webkit-app-region: no-drag; }
+
+/* ─── Glass surface (clui-cc pattern) ─── */
+.glass-surface {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
 }
 
-.titlebar-no-drag {
-  -webkit-app-region: no-drag;
+/* ─── Prose (chat markdown — clui-cc prose-cloud) ─── */
+.prose-cloud {
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  user-select: text;
 }
-
-/* Chat markdown prose styling */
-.prose-folio h1 { font-size: 1.25rem; font-weight: 600; margin: 0.75em 0 0.25em; color: var(--text-primary); }
-.prose-folio h2 { font-size: 1.1rem; font-weight: 600; margin: 0.75em 0 0.25em; color: var(--text-primary); }
-.prose-folio h3 { font-size: 1rem; font-weight: 600; margin: 0.5em 0 0.25em; color: var(--text-primary); }
-.prose-folio p { margin: 0.4em 0; }
-.prose-folio ul, .prose-folio ol { margin: 0.3em 0; padding-left: 1.25em; }
-.prose-folio li { margin: 0.15em 0; }
-.prose-folio code {
-  font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.85em;
+.prose-cloud p { margin: 0.25em 0; }
+.prose-cloud pre {
   background: var(--bg-code);
-  padding: 0.1em 0.3em;
-  border-radius: 3px;
-}
-.prose-folio pre {
-  background: var(--bg-code);
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
   padding: 0.75em 1em;
-  margin: 0.5em 0;
-  overflow-x: auto;
   font-size: 12px;
-  line-height: 1.5;
+  font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
+  overflow-x: auto;
+  margin: 0.5em 0;
 }
-.prose-folio pre code {
+.prose-cloud code {
+  background: var(--accent-light);
+  color: var(--accent);
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
+}
+.prose-cloud pre code {
   background: none;
+  color: inherit;
   padding: 0;
   font-size: inherit;
 }
-.prose-folio blockquote {
-  border-left: 2px solid var(--border);
+.prose-cloud a { color: var(--accent); text-decoration: none; cursor: pointer; }
+.prose-cloud a:hover { text-decoration: underline; }
+.prose-cloud ul, .prose-cloud ol { padding-left: 1.2em; margin: 0.25em 0; }
+.prose-cloud li { margin: 0.1em 0; }
+.prose-cloud h1, .prose-cloud h2, .prose-cloud h3, .prose-cloud h4 {
+  margin: 0.5em 0 0.25em;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.prose-cloud blockquote {
+  border-left: 3px solid var(--tool-running-border);
   padding-left: 0.75em;
-  margin: 0.5em 0;
   color: var(--text-secondary);
-}
-.prose-folio table {
-  border-collapse: collapse;
   margin: 0.5em 0;
-  font-size: 0.85em;
-  width: 100%;
 }
-.prose-folio th, .prose-folio td {
+.prose-cloud table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  font-size: 12px;
+  margin: 0.5em 0;
+}
+.prose-cloud th, .prose-cloud td {
   border: 1px solid var(--border);
-  padding: 0.3em 0.6em;
+  padding: 0.4em 0.6em;
+  overflow-wrap: anywhere;
   text-align: left;
 }
-.prose-folio th {
-  background: var(--bg-code);
-  font-weight: 600;
-}
-.prose-folio a {
-  color: var(--accent);
-  text-decoration: none;
-}
-.prose-folio a:hover {
-  text-decoration: underline;
-}
-.prose-folio hr {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 0.75em 0;
-}
+.prose-cloud th:first-child, .prose-cloud td:first-child { white-space: nowrap; }
+.prose-cloud th { background: var(--surface-primary); font-weight: 600; }
+.prose-cloud hr { border: none; border-top: 1px solid var(--border); margin: 0.75em 0; }
 
-/* Metadata labels */
-.text-meta {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-/* Animations */
+/* ─── Animations ─── */
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+.animate-spin { animation: spin 1s linear infinite; }
 
-.animate-spin {
-  animation: spin 1s linear infinite;
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes bounce-dot {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-4px); }
 }

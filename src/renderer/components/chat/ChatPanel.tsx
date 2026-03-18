@@ -9,12 +9,24 @@ interface Props {
 export function ChatPanel({ style }: Props) {
   return (
     <div
-      className="flex flex-col h-full border-l border-[var(--border)] bg-[var(--bg-primary)]"
-      style={style}
+      className="flex flex-col h-full"
+      style={{
+        ...style,
+        background: 'var(--bg-surface)',
+        borderLeft: '1px solid var(--border)',
+      }}
     >
       {/* Header */}
-      <div className="flex items-center px-3 py-2 border-b border-[var(--border)] flex-shrink-0 pt-10">
-        <span className="text-[12px] font-medium text-[var(--text-secondary)]">
+      <div
+        className="flex items-center px-4 flex-shrink-0"
+        style={{
+          height: 40,
+          paddingTop: 28,
+          paddingBottom: 8,
+          borderBottom: '1px solid var(--border)',
+        }}
+      >
+        <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>
           Claude
         </span>
       </div>
@@ -22,7 +34,7 @@ export function ChatPanel({ style }: Props) {
       {/* Messages */}
       <MessageList />
 
-      {/* Status */}
+      {/* Status (overlaps bottom of messages like clui-cc) */}
       <StatusBar />
 
       {/* Input */}

@@ -12,28 +12,38 @@ export function Sidebar() {
 
   return (
     <div
-      className="sidebar relative flex flex-col h-full border-r border-[var(--border)] bg-[var(--bg-sidebar)] flex-shrink-0"
-      style={{ width: sidebarWidth }}
+      className="sidebar relative flex flex-col h-full flex-shrink-0"
+      style={{
+        width: sidebarWidth,
+        background: 'var(--bg-sidebar)',
+        borderRight: '1px solid var(--border)',
+      }}
     >
       {/* Tab bar */}
-      <div className="flex items-center border-b border-[var(--border)] px-1.5 py-1.5 gap-0.5 pt-10">
+      <div
+        className="flex items-center gap-0.5 px-2 py-1.5"
+        style={{
+          paddingTop: 36,
+          borderBottom: '1px solid var(--border)',
+        }}
+      >
         <SidebarTab
           active={sidebarPanel === 'files'}
           onClick={() => setSidebarPanel('files')}
-          icon={<Files size={14} />}
+          icon={<Files size={13} />}
           label="Files"
         />
         <SidebarTab
           active={sidebarPanel === 'search'}
           onClick={() => setSidebarPanel('search')}
-          icon={<Search size={14} />}
+          icon={<Search size={13} />}
           label="Search"
         />
         <SidebarTab
           active={sidebarPanel === 'properties'}
           onClick={() => setSidebarPanel('properties')}
-          icon={<Settings2 size={14} />}
-          label="Properties"
+          icon={<Settings2 size={13} />}
+          label="Props"
         />
       </div>
 
@@ -52,8 +62,11 @@ export function Sidebar() {
 
       {/* Status bar */}
       {isOpen && (
-        <div className="px-3 py-1.5 text-[11px] text-[var(--text-muted)] border-t border-[var(--border)]">
-          {noteCount} notes indexed
+        <div
+          className="px-3 py-1.5 text-[11px]"
+          style={{ color: 'var(--text-tertiary)', borderTop: '1px solid var(--border)' }}
+        >
+          {noteCount} notes
         </div>
       )}
 
@@ -77,10 +90,13 @@ function SidebarTab({
     <button
       onClick={onClick}
       title={label}
-      className={`
-        flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md transition-colors cursor-pointer
-        ${active ? 'bg-[var(--bg-active)] text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}
-      `}
+      className="flex items-center gap-1.5 px-2.5 py-1 text-[12px] rounded-full cursor-pointer transition-colors"
+      style={{
+        fontWeight: active ? 500 : 400,
+        color: active ? 'var(--text-primary)' : 'var(--text-tertiary)',
+        background: active ? 'var(--surface-primary)' : 'transparent',
+        border: active ? '1px solid var(--surface-secondary)' : '1px solid transparent',
+      }}
     >
       {icon}
       <span>{label}</span>
@@ -91,9 +107,9 @@ function SidebarTab({
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-      <FolderOpen size={32} className="text-[var(--text-muted)] mb-3 opacity-40" />
-      <p className="text-[var(--text-muted)] text-sm">No vault open</p>
-      <p className="text-[var(--text-muted)] text-[11px] mt-1 leading-relaxed">
+      <FolderOpen size={28} className="mb-3 opacity-30" style={{ color: 'var(--text-tertiary)' }} />
+      <p className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>No vault open</p>
+      <p className="text-[11px] mt-1 leading-relaxed" style={{ color: 'var(--text-tertiary)', opacity: 0.7 }}>
         Open a folder to get started
       </p>
     </div>
@@ -103,9 +119,11 @@ function EmptyState() {
 function PropertiesPlaceholder() {
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-      <Settings2 size={32} className="text-[var(--text-muted)] mb-3 opacity-40" />
-      <p className="text-[var(--text-muted)] text-sm">Properties</p>
-      <p className="text-[var(--text-muted)] text-[11px] mt-1">Select a note to view properties</p>
+      <Settings2 size={28} className="mb-3 opacity-30" style={{ color: 'var(--text-tertiary)' }} />
+      <p className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>Properties</p>
+      <p className="text-[11px] mt-1" style={{ color: 'var(--text-tertiary)', opacity: 0.7 }}>
+        Select a note to view
+      </p>
     </div>
   )
 }

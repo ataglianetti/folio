@@ -19,14 +19,10 @@ export function CommandPalette() {
   }, [showCommandPalette])
 
   useEffect(() => {
-    if (showCommandPalette) {
-      search(query)
-    }
+    if (showCommandPalette) search(query)
   }, [query, showCommandPalette, search])
 
-  useEffect(() => {
-    setSelectedIndex(0)
-  }, [searchResults])
+  useEffect(() => { setSelectedIndex(0) }, [searchResults])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -54,13 +50,26 @@ export function CommandPalette() {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+        className="absolute inset-0"
+        style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
         onClick={toggleCommandPalette}
       />
 
-      <div className="relative w-[520px] max-h-[380px] bg-[var(--bg-surface)] backdrop-blur-xl rounded-xl shadow-2xl border border-[var(--border)] overflow-hidden">
-        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[var(--border)]">
-          <Search size={15} className="text-[var(--text-muted)] flex-shrink-0" />
+      <div
+        className="relative w-[480px] max-h-[380px] overflow-hidden"
+        style={{
+          background: 'var(--popover-bg)',
+          border: '1px solid var(--popover-border)',
+          borderRadius: 16,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.3), 0 1px 4px rgba(0,0,0,0.2)',
+          backdropFilter: 'blur(20px)',
+        }}
+      >
+        <div
+          className="flex items-center gap-2.5 px-4 py-3"
+          style={{ borderBottom: '1px solid var(--popover-border)' }}
+        >
+          <Search size={14} className="flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
           <input
             ref={inputRef}
             type="text"
@@ -68,8 +77,8 @@ export function CommandPalette() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 text-sm bg-transparent outline-none
-              text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+            className="flex-1 text-[13px] bg-transparent outline-none"
+            style={{ color: 'var(--text-primary)' }}
           />
         </div>
         <div className="max-h-[300px] overflow-y-auto py-1">
@@ -80,25 +89,27 @@ export function CommandPalette() {
                 openNote(result.path)
                 toggleCommandPalette()
               }}
-              className={`
-                w-full text-left px-3 py-2 mx-1 rounded-lg flex items-center gap-2.5 transition-colors cursor-pointer
-                ${idx === selectedIndex ? 'bg-[var(--bg-active)]' : 'hover:bg-[var(--bg-hover)]'}
-              `}
-              style={{ width: 'calc(100% - 8px)' }}
+              className="w-full text-left px-3 py-2 mx-1 rounded-lg flex items-center gap-2.5 cursor-pointer transition-colors"
+              style={{
+                width: 'calc(100% - 8px)',
+                background: idx === selectedIndex ? 'var(--accent-light)' : 'transparent',
+                color: idx === selectedIndex ? 'var(--accent)' : 'var(--text-secondary)',
+              }}
+              onMouseEnter={(e) => { setSelectedIndex(idx) }}
             >
-              <FileText size={14} className="text-[var(--text-muted)] flex-shrink-0" />
+              <FileText size={13} className="flex-shrink-0 opacity-50" />
               <div className="flex flex-col gap-0 min-w-0">
-                <span className="text-sm text-[var(--text-primary)] truncate">
+                <span className="text-[12px] truncate" style={{ color: idx === selectedIndex ? 'var(--text-primary)' : 'var(--text-primary)' }}>
                   {result.title || result.path.split('/').pop()?.replace('.md', '')}
                 </span>
-                <span className="text-[11px] text-[var(--text-muted)] truncate">
+                <span className="text-[10px] truncate" style={{ color: 'var(--text-tertiary)' }}>
                   {result.path}
                 </span>
               </div>
             </button>
           ))}
           {query && searchResults.length === 0 && (
-            <div className="px-4 py-8 text-center text-sm text-[var(--text-muted)]">
+            <div className="px-4 py-8 text-center text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
               No notes found
             </div>
           )}

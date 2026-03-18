@@ -87,23 +87,35 @@ function App() {
 function WelcomeScreen({ onOpenVault }: { onOpenVault: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center h-full select-none">
-      <h1 className="text-[42px] font-extralight tracking-tight mb-1 text-[var(--text-primary)]">
+      <h1
+        className="text-[42px] font-extralight tracking-tight mb-1"
+        style={{ color: 'var(--text-primary)' }}
+      >
         Folio
       </h1>
-      <p className="text-[var(--text-muted)] text-sm mb-10">
+      <p className="text-[13px] mb-10" style={{ color: 'var(--text-tertiary)' }}>
         Your notes, your files, your AI.
       </p>
       <button
         onClick={onOpenVault}
-        className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--accent)] text-white
-          hover:opacity-90 transition-opacity text-sm font-medium cursor-pointer"
+        className="flex items-center gap-2 px-5 py-2.5 text-[13px] font-medium cursor-pointer transition-colors"
+        style={{
+          borderRadius: 9999,
+          background: 'var(--accent)',
+          color: '#ffffff',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--send-hover)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--accent)' }}
       >
-        <FolderOpen size={16} />
+        <FolderOpen size={15} />
         Open Vault
       </button>
-      <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] mt-6">
-        <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[var(--bg-code)] text-[var(--text-secondary)] font-mono text-[11px]">
-          <Command size={10} />P
+      <div className="flex items-center gap-1.5 text-[10px] mt-6" style={{ color: 'var(--text-tertiary)' }}>
+        <kbd
+          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded font-mono text-[10px]"
+          style={{ background: 'var(--surface-primary)', color: 'var(--text-secondary)', border: '1px solid var(--surface-secondary)' }}
+        >
+          <Command size={9} />P
         </kbd>
         <span>to search notes</span>
       </div>

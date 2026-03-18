@@ -13,27 +13,25 @@ export function TitleBar() {
   const Icon = typeConfig?.icon
 
   return (
-    <div className="titlebar-no-drag flex items-center h-full px-4 pl-20 bg-[var(--bg-primary)] flex-shrink-0 select-none w-full">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-0.5 text-[12px] min-w-0 flex-1">
+    <div
+      className="titlebar-no-drag flex items-center h-full pl-20 pr-4 flex-shrink-0 select-none w-full"
+      style={{ background: 'var(--bg-primary)' }}
+    >
+      <div className="flex items-center gap-0.5 text-[11px] min-w-0 flex-1">
         {Icon && (
-          <Icon
-            size={13}
-            className="flex-shrink-0 mr-1"
-            style={{ color: typeConfig?.color }}
-          />
+          <Icon size={12} className="flex-shrink-0 mr-1" style={{ color: typeConfig?.color }} />
         )}
         {segments.map((segment, i) => (
           <span key={i} className="flex items-center gap-0.5 min-w-0">
             {i > 0 && (
-              <ChevronRight size={10} className="text-[var(--text-muted)] flex-shrink-0 opacity-50" />
+              <ChevronRight size={9} className="flex-shrink-0 opacity-40" style={{ color: 'var(--text-tertiary)' }} />
             )}
             <span
-              className={`truncate ${
-                i === segments.length - 1
-                  ? 'text-[var(--text-primary)] font-medium'
-                  : 'text-[var(--text-muted)]'
-              }`}
+              className="truncate"
+              style={{
+                color: i === segments.length - 1 ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                fontWeight: i === segments.length - 1 ? 500 : 400,
+              }}
             >
               {segment}
             </span>
@@ -41,10 +39,9 @@ export function TitleBar() {
         ))}
       </div>
 
-      {/* Save indicator */}
       {isDirty && (
-        <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
-          <Circle size={6} fill="currentColor" className="text-[var(--accent)]" />
+        <div className="flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+          <Circle size={5} fill="var(--accent)" style={{ color: 'var(--accent)' }} />
           <span>Edited</span>
         </div>
       )}
