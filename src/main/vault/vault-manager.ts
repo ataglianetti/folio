@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, readdirSync, mkdirSync, unlinkSync, statSync, realpathSync } from 'fs'
+import { readFileSync, writeFileSync, readdirSync, mkdirSync, unlinkSync, statSync, realpathSync, renameSync } from 'fs'
 import { join, relative, extname, dirname, resolve, isAbsolute } from 'path'
 import { Indexer } from './indexer'
 import { FileWatcher } from './file-watcher'
@@ -115,20 +115,67 @@ export class VaultManager {
     this.indexer!.indexFile(this.vaultPath!, fullPath)
   }
 
+  renameNote(oldPath: string, newPath: string): void {
+    const fullOld = this.safePath(oldPath)
+    const fullNew = this.safePath(newPath)
+    mkdirSync(dirname(fullNew), { recursive: true })
+    renameSync(fullOld, fullNew)
+    this.indexer!.removeFile(this.vaultPath!, fullOld)
+    this.indexer!.indexFile(this.vaultPath!, fullNew)
+  }
+
   deleteNote(notePath: string): void {
     const fullPath = this.safePath(notePath)
     unlinkSync(fullPath)
     this.indexer!.removeFile(this.vaultPath!, fullPath)
   }
 
-  search(query: string) {
+  search(query: string, limit?: number, offset?: number) {
     this.ensureVault()
-    return this.indexer!.search(query)
+    return this.indexer!.search(query, limit, offset)
   }
 
   getBacklinks(noteName: string) {
     this.ensureVault()
     return this.indexer!.backlinks(noteName)
+  }
+
+  resolveLink(target: string): string | null {
+    this.ensureVault()
+    return this.indexer!.resolveLink(target)
+  }
+
+  /** Resolve a vault-relative asset path to an absolute file path */
+  resolveAsset(assetPath: string): string | null {
+    this.ensureVault()
+    // Try exact path first
+    const fullPath = join(this.vaultPath!, assetPath)
+    try {
+      statSync(fullPath)
+      return fullPath
+    } catch {
+      // Walk the vault looking for the file by name
+      const fileName = assetPath.split('/').pop()
+      if (!fileName) return null
+      return this.findFile(this.vaultPath!, fileName)
+    }
+  }
+
+  private findFile(dir: string, name: string): string | null {
+    try {
+      const entries = readdirSync(dir, { withFileTypes: true })
+      for (const entry of entries) {
+        if (entry.name.startsWith('.')) continue
+        const full = join(dir, entry.name)
+        if (entry.isDirectory()) {
+          const found = this.findFile(full, name)
+          if (found) return found
+        } else if (entry.name === name) {
+          return full
+        }
+      }
+    } catch { /* skip unreadable dirs */ }
+    return null
   }
 
   noteCount(): number {

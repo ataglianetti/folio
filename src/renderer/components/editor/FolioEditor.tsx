@@ -1,6 +1,5 @@
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useVaultStore } from '../../stores/vault'
-import { PropertyHeader } from '../properties/PropertyHeader'
 import { createEditorView } from './codemirror-setup'
 import type { EditorView } from '@codemirror/view'
 import { extractFrontmatter } from '../../lib/markdown'
@@ -70,27 +69,10 @@ export function FolioEditor() {
     return () => clearTimeout(timer)
   }, [isDirty, saveNote])
 
-  // Cmd+S
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault()
-        saveNote()
-      }
-    },
-    [saveNote]
-  )
-
-  useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [handleKeyDown])
-
   const hasNote = !!currentNotePath
 
   return (
     <div className="folio-editor">
-      {hasNote && <PropertyHeader content={currentNoteContent ?? ''} />}
       <div
         ref={editorRef}
         className="cm-wrapper"

@@ -1,17 +1,24 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net } from 'electron'
 import { join } from 'path'
+import { pathToFileURL } from 'url'
 import { VaultManager } from './vault/vault-manager'
 import { SessionManager } from './claude/session-manager'
+import { loadState, saveState } from './state-store'
+import type { AppState } from './state-store'
 import type { NormalizedEvent, SessionStatus } from './claude/types'
 
 let mainWindow: BrowserWindow | null = null
 const vaultManager = new VaultManager()
 const sessionManager = new SessionManager()
+let appState: AppState = {}
 
 function createWindow(): void {
+  const bounds = appState.windowBounds
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
+    width: bounds?.width ?? 1400,
+    height: bounds?.height ?? 900,
+    x: bounds?.x,
+    y: bounds?.y,
     minWidth: 800,
     minHeight: 600,
     title: 'Folio',
@@ -97,16 +104,28 @@ ipcMain.handle('folio:list-directory', async (_event, path: string) => {
   }
 })
 
-ipcMain.handle('folio:search-notes', async (_event, query: string) => {
-  return vaultManager.search(query)
+ipcMain.handle('folio:search-notes', async (_event, query: string, limit?: number, offset?: number) => {
+  return vaultManager.search(query, limit, offset)
 })
 
 ipcMain.handle('folio:get-backlinks', async (_event, noteName: string) => {
   return vaultManager.getBacklinks(noteName)
 })
 
+ipcMain.handle('folio:resolve-link', async (_event, target: string) => {
+  return vaultManager.resolveLink(target)
+})
+
+ipcMain.handle('folio:resolve-asset', async (_event, assetPath: string) => {
+  return vaultManager.resolveAsset(assetPath)
+})
+
 ipcMain.handle('folio:create-note', async (_event, path: string, noteType?: string) => {
   vaultManager.createNote(path, noteType)
+})
+
+ipcMain.handle('folio:rename-note', async (_event, oldPath: string, newPath: string) => {
+  vaultManager.renameNote(oldPath, newPath)
 })
 
 ipcMain.handle('folio:delete-note', async (_event, path: string) => {
@@ -133,6 +152,17 @@ ipcMain.handle('folio:select-directory', async () => {
     console.error('[IPC] select-directory failed:', err)
     throw err
   }
+})
+
+// --- State IPC Handlers ---
+
+ipcMain.handle('folio:get-state', async () => {
+  return appState
+})
+
+ipcMain.handle('folio:save-state', async (_event, partialState: Partial<AppState>) => {
+  appState = { ...appState, ...partialState }
+  saveState(appState)
 })
 
 // --- Claude IPC Handlers ---
@@ -171,7 +201,24 @@ ipcMain.handle('folio:claude-reset', async () => {
 
 // --- App lifecycle ---
 
+// Register vault-asset:// protocol for serving images/files from the vault
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'vault-asset', privileges: { bypassCSP: true, supportFetchAPI: true, stream: true } },
+])
+
 app.whenReady().then(async () => {
+  appState = loadState()
+
+  // Handle vault-asset:// requests → resolve to local files
+  protocol.handle('vault-asset', (request) => {
+    const assetPath = decodeURIComponent(request.url.replace('vault-asset://', ''))
+    const resolved = vaultManager.resolveAsset(assetPath)
+    if (resolved) {
+      return net.fetch(pathToFileURL(resolved).href)
+    }
+    return new Response('Not found', { status: 404 })
+  })
+
   // Explicit menu to prevent macOS Tahoe crash in _addWindowTabsMenuItemsIfNeeded
   const template: Electron.MenuItemConstructorOptions[] = [
     {
@@ -240,6 +287,12 @@ app.whenReady().then(async () => {
 })
 
 app.on('window-all-closed', () => {
+  // Save window bounds
+  if (mainWindow) {
+    const bounds = mainWindow.getBounds()
+    appState.windowBounds = bounds
+    saveState(appState)
+  }
   sessionManager.destroy()
   vaultManager.close()
   if (process.platform !== 'darwin') {

@@ -59,10 +59,18 @@ export class Indexer {
         FOREIGN KEY (note_path) REFERENCES notes(path) ON DELETE CASCADE
       );
 
+      CREATE TABLE IF NOT EXISTS aliases (
+        note_path TEXT,
+        alias TEXT,
+        UNIQUE(note_path, alias),
+        FOREIGN KEY (note_path) REFERENCES notes(path) ON DELETE CASCADE
+      );
+
       CREATE INDEX IF NOT EXISTS idx_tags_tag ON tags(tag);
       CREATE INDEX IF NOT EXISTS idx_wikilinks_target ON wikilinks(target);
       CREATE INDEX IF NOT EXISTS idx_properties_key ON properties(key);
       CREATE INDEX IF NOT EXISTS idx_notes_type ON notes(note_type);
+      CREATE INDEX IF NOT EXISTS idx_aliases_alias ON aliases(alias);
     `)
   }
 
@@ -107,6 +115,18 @@ export class Indexer {
     for (const [key, value] of Object.entries(parsed.frontmatter)) {
       insertProp.run(relPath, key, JSON.stringify(value))
     }
+
+    // Clear and re-insert aliases
+    this.db.prepare('DELETE FROM aliases WHERE note_path = ?').run(relPath)
+    const aliasesRaw = parsed.frontmatter.aliases
+    if (Array.isArray(aliasesRaw)) {
+      const insertAlias = this.db.prepare('INSERT OR IGNORE INTO aliases (note_path, alias) VALUES (?, ?)')
+      for (const alias of aliasesRaw) {
+        if (typeof alias === 'string' && alias.trim()) {
+          insertAlias.run(relPath, alias.trim())
+        }
+      }
+    }
   }
 
   removeFile(vaultPath: string, filePath: string): void {
@@ -139,29 +159,45 @@ export class Indexer {
     return count
   }
 
-  search(query: string): NoteIndex[] {
+  search(query: string, limit = 50, offset = 0): { results: NoteIndex[]; total: number } {
     const pattern = `%${query}%`
-    const rows = this.db.prepare(`
-      SELECT path, title, note_type, modified
-      FROM notes
+
+    const countRow = this.db.prepare(`
+      SELECT COUNT(*) as total FROM notes
       WHERE content LIKE ? OR title LIKE ? OR path LIKE ?
-      ORDER BY modified DESC
-      LIMIT 100
-    `).all(pattern, pattern, pattern) as Array<{
+    `).get(pattern, pattern, pattern) as { total: number }
+
+    const rows = this.db.prepare(`
+      SELECT n.path, n.title, n.note_type, n.modified,
+             GROUP_CONCAT(DISTINCT t.tag) as tags_csv,
+             GROUP_CONCAT(DISTINCT w.target) as links_csv
+      FROM notes n
+      LEFT JOIN tags t ON t.note_path = n.path
+      LEFT JOIN wikilinks w ON w.source_path = n.path
+      WHERE n.content LIKE ? OR n.title LIKE ? OR n.path LIKE ?
+      GROUP BY n.path
+      ORDER BY n.modified DESC
+      LIMIT ? OFFSET ?
+    `).all(pattern, pattern, pattern, limit, offset) as Array<{
       path: string
       title: string | null
       note_type: string | null
       modified: number
+      tags_csv: string | null
+      links_csv: string | null
     }>
 
-    return rows.map((row) => ({
-      path: row.path,
-      title: row.title,
-      note_type: row.note_type,
-      tags: this.getTagsForNote(row.path),
-      wikilinks: this.getWikilinksForNote(row.path),
-      modified: row.modified,
-    }))
+    return {
+      total: countRow.total,
+      results: rows.map((row) => ({
+        path: row.path,
+        title: row.title,
+        note_type: row.note_type,
+        tags: row.tags_csv ? row.tags_csv.split(',') : [],
+        wikilinks: row.links_csv ? row.links_csv.split(',') : [],
+        modified: row.modified,
+      })),
+    }
   }
 
   listNotes(): NoteIndex[] {
@@ -184,6 +220,48 @@ export class Indexer {
       wikilinks: this.getWikilinksForNote(row.path),
       modified: row.modified,
     }))
+  }
+
+  /**
+   * Resolve a wikilink target to a note path using Obsidian's algorithm:
+   * 1. Exact filename match (shortest path wins if multiple)
+   * 2. Alias match
+   * 3. Title match
+   */
+  resolveLink(target: string): string | null {
+    // Strip heading/block refs for file resolution
+    const fileName = target.replace(/#.*$/, '').trim()
+    if (!fileName) return null
+
+    // 1. Match by filename (path ends with /name.md or is just name.md)
+    const rows = this.db.prepare(
+      `SELECT path FROM notes WHERE path = ? OR path LIKE ?`
+    ).all(
+      fileName + '.md',
+      '%/' + fileName + '.md'
+    ) as Array<{ path: string }>
+
+    if (rows.length === 1) return rows[0].path
+    if (rows.length > 1) {
+      // Shortest path wins (fewest directory segments)
+      return rows.sort((a, b) => a.path.split('/').length - b.path.split('/').length)[0].path
+    }
+
+    // 2. Match by alias
+    const aliasRow = this.db.prepare(
+      `SELECT note_path FROM aliases WHERE alias = ? COLLATE NOCASE`
+    ).get(fileName) as { note_path: string } | undefined
+
+    if (aliasRow) return aliasRow.note_path
+
+    // 3. Match by title
+    const titleRow = this.db.prepare(
+      `SELECT path FROM notes WHERE title = ? COLLATE NOCASE`
+    ).get(fileName) as { path: string } | undefined
+
+    if (titleRow) return titleRow.path
+
+    return null
   }
 
   backlinks(noteName: string): string[] {

@@ -8,7 +8,9 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "postinstall": "electron-rebuild",
+    "package": "electron-vite build && electron-builder --mac"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.1",
@@ -26,6 +28,8 @@
     "chokidar": "^4.0.0",
     "framer-motion": "^12.38.0",
     "gray-matter": "^4.0.3",
+    "katex": "^0.16.38",
+    "lezer-markdown-obsidian": "^0.0.3",
     "lucide-react": "^0.577.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -34,16 +38,19 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.3",
     "@tailwindcss/vite": "^4.2.1",
     "@types/better-sqlite3": "^7.6.0",
+    "@types/katex": "^0.16.8",
     "@types/node": "^24.12.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.3.0",
     "electron": "^33.0.0",
+    "electron-builder": "^26.8.1",
     "electron-vite": "^3.0.0",
     "tailwindcss": "^4.2.1",
-    "typescript": "~5.7.0",
+    "typescript": "~5.7.3",
     "vite": "^6.0.0"
   }
 }

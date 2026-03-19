@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   ChevronRight,
   ChevronDown,
@@ -6,16 +6,34 @@ import {
   File,
   Folder,
   FolderOpen,
+  Plus,
 } from 'lucide-react'
 import { useVaultStore } from '../../stores/vault'
 import type { FileEntry } from '../../types'
 
 export function FileTree() {
-  const { fileTree, currentNotePath, openNote, loadDirectory, expandedPaths, toggleDirectory } =
+  const { fileTree, currentNotePath, openNote, loadDirectory, expandedPaths, toggleDirectory, createAndOpen } =
     useVaultStore()
 
   return (
     <div className="file-tree text-[13px] overflow-y-auto h-full py-1">
+      {/* Header with + button */}
+      <div className="flex items-center justify-between px-3 py-1">
+        <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: 'var(--text-tertiary)' }}>
+          Files
+        </span>
+        <button
+          onClick={createAndOpen}
+          className="p-0.5 rounded cursor-pointer transition-colors"
+          style={{ color: 'var(--text-tertiary)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-hover)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-tertiary)'; e.currentTarget.style.background = 'transparent' }}
+          title="New note (Cmd+N)"
+        >
+          <Plus size={13} />
+        </button>
+      </div>
+
       {fileTree.map((entry) => (
         <FileTreeNode
           key={entry.path}
@@ -52,16 +70,39 @@ function FileTreeNode({
   onToggle,
 }: FileTreeNodeProps) {
   const [children, setChildren] = useState<FileEntry[] | null>(null)
+  const [renaming, setRenaming] = useState(false)
+  const [renameName, setRenameName] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
   const isExpanded = expandedPaths.has(entry.path)
   const isActive = currentPath === entry.path
+  const renameNote = useVaultStore((s) => s.renameNote)
 
   const handleClick = useCallback(async () => {
+    if (renaming) return
     if (entry.is_directory) {
       onToggle(entry.path)
     } else if (entry.name.endsWith('.md')) {
       onOpen(entry.path)
     }
-  }, [entry, onOpen, onToggle])
+  }, [entry, onOpen, onToggle, renaming])
+
+  const handleDoubleClick = useCallback(() => {
+    if (entry.is_directory) return
+    setRenameName(displayName(entry.name))
+    setRenaming(true)
+    setTimeout(() => inputRef.current?.select(), 0)
+  }, [entry])
+
+  const commitRename = useCallback(() => {
+    setRenaming(false)
+    const newName = renameName.trim()
+    if (!newName || newName === displayName(entry.name)) return
+
+    const ext = entry.name.endsWith('.md') ? '.md' : ''
+    const dir = entry.path.includes('/') ? entry.path.slice(0, entry.path.lastIndexOf('/') + 1) : ''
+    const newPath = dir + newName + ext
+    renameNote(entry.path, newPath)
+  }, [renameName, entry, renameNote])
 
   useEffect(() => {
     if (isExpanded && !children && entry.is_directory) {
@@ -73,6 +114,7 @@ function FileTreeNode({
     <div>
       <button
         onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
         className="w-full text-left h-7 flex items-center gap-1 mx-1 rounded-[4px] cursor-pointer transition-all duration-150"
         style={{
           paddingLeft: `${depth * 14 + 8}px`,
@@ -107,7 +149,28 @@ function FileTreeNode({
             <FileIcon name={entry.name} />
           </>
         )}
-        <span className="truncate ml-0.5 text-[12px]">{displayName(entry.name)}</span>
+        {renaming ? (
+          <input
+            ref={inputRef}
+            value={renameName}
+            onChange={(e) => setRenameName(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commitRename()
+              if (e.key === 'Escape') setRenaming(false)
+              e.stopPropagation()
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="ml-0.5 text-[12px] bg-transparent outline-none flex-1 min-w-0 px-0.5 rounded"
+            style={{
+              color: 'var(--text-primary)',
+              border: '1px solid var(--accent)',
+              background: 'var(--bg-input)',
+            }}
+          />
+        ) : (
+          <span className="truncate ml-0.5 text-[12px]">{displayName(entry.name)}</span>
+        )}
       </button>
       {isExpanded && children && (
         <div>

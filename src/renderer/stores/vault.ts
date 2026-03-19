@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { FileEntry, NoteIndex } from '../types'
+import { useToastStore } from './toast'
 
 interface VaultState {
   // Vault state
@@ -20,6 +21,7 @@ interface VaultState {
   // Search
   searchQuery: string
   searchResults: NoteIndex[]
+  searchTotal: number
 
   // Actions
   openVault: (path: string) => Promise<void>
@@ -31,6 +33,8 @@ interface VaultState {
   search: (query: string) => Promise<void>
   searchAndOpen: (noteName: string) => Promise<void>
   createNote: (path: string, noteType?: string) => Promise<void>
+  createAndOpen: () => Promise<void>
+  renameNote: (oldPath: string, newPath: string) => Promise<void>
 }
 
 export const useVaultStore = create<VaultState>((set, get) => ({
@@ -45,8 +49,11 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   isDirty: false,
   searchQuery: '',
   searchResults: [],
+  searchTotal: 0,
 
   openVault: async (path: string) => {
+    // Guard against double-open (StrictMode remounts)
+    if (get().vaultPath === path && get().isOpen) return
     try {
       await window.folio.vault.openVault(path)
       const entries = await window.folio.vault.listDirectory('')
@@ -57,6 +64,7 @@ export const useVaultStore = create<VaultState>((set, get) => ({
         fileTree: entries as FileEntry[],
       })
     } catch (err) {
+      useToastStore.getState().addToast('Failed to open vault')
       console.error('Failed to open vault:', err)
       throw err
     }
@@ -96,6 +104,7 @@ export const useVaultStore = create<VaultState>((set, get) => ({
         isDirty: false,
       })
     } catch (err) {
+      useToastStore.getState().addToast('Failed to open note')
       console.error('Failed to open note:', err)
     }
   },
@@ -108,6 +117,7 @@ export const useVaultStore = create<VaultState>((set, get) => ({
       await window.folio.vault.writeNote(currentNotePath, currentNoteContent)
       set({ isDirty: false })
     } catch (err) {
+      useToastStore.getState().addToast('Failed to save note')
       console.error('Failed to save note:', err)
     }
   },
@@ -119,31 +129,30 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   search: async (query: string) => {
     set({ searchQuery: query })
     if (!query.trim()) {
-      set({ searchResults: [] })
+      set({ searchResults: [], searchTotal: 0 })
       return
     }
     try {
-      const results = await window.folio.vault.searchNotes(query)
-      set({ searchResults: results })
+      const { results, total } = await window.folio.vault.searchNotes(query)
+      set({ searchResults: results, searchTotal: total })
     } catch (err) {
       console.error('Search failed:', err)
-      set({ searchResults: [] })
+      set({ searchResults: [], searchTotal: 0 })
     }
   },
 
   searchAndOpen: async (noteName: string) => {
     try {
-      const results = await window.folio.vault.searchNotes(noteName)
-      const exactMatch = results.find((r) => {
-        const filename = r.path.split('/').pop()?.replace('.md', '') ?? ''
-        return filename.toLowerCase() === noteName.toLowerCase()
-      })
-      const titleMatch = results.find((r) =>
-        r.title?.toLowerCase() === noteName.toLowerCase()
-      )
-      const match = exactMatch || titleMatch || results[0]
-      if (match) {
-        await get().openNote(match.path)
+      // Use shortest-path resolution (matches Obsidian's algorithm)
+      const resolved = await window.folio.vault.resolveLink(noteName)
+      if (resolved) {
+        await get().openNote(resolved)
+        return
+      }
+      // Fallback to search if resolve fails
+      const { results } = await window.folio.vault.searchNotes(noteName)
+      if (results[0]) {
+        await get().openNote(results[0].path)
       }
     } catch (err) {
       console.error('Failed to search and open:', err)
@@ -155,7 +164,39 @@ export const useVaultStore = create<VaultState>((set, get) => ({
       await window.folio.vault.createNote(path, noteType)
       await get().openNote(path)
     } catch (err) {
+      useToastStore.getState().addToast('Failed to create note')
       console.error('Failed to create note:', err)
+    }
+  },
+
+  createAndOpen: async () => {
+    const timestamp = Date.now()
+    const path = `Untitled-${timestamp}.md`
+    try {
+      await window.folio.vault.createNote(path)
+      await get().openNote(path)
+      // Refresh file tree
+      const entries = await window.folio.vault.listDirectory('')
+      set({ fileTree: entries as FileEntry[] })
+    } catch (err) {
+      useToastStore.getState().addToast('Failed to create note')
+      console.error('Failed to create note:', err)
+    }
+  },
+
+  renameNote: async (oldPath: string, newPath: string) => {
+    try {
+      await window.folio.vault.renameNote(oldPath, newPath)
+      const { currentNotePath } = get()
+      if (currentNotePath === oldPath) {
+        set({ currentNotePath: newPath })
+      }
+      // Refresh file tree
+      const entries = await window.folio.vault.listDirectory('')
+      set({ fileTree: entries as FileEntry[] })
+    } catch (err) {
+      useToastStore.getState().addToast('Failed to rename note')
+      console.error('Failed to rename note:', err)
     }
   },
 }))

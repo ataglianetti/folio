@@ -1,4 +1,4 @@
-import { Files, Search, Settings2, FolderOpen } from 'lucide-react'
+import { Files, Search, FolderOpen } from 'lucide-react'
 import { useUIStore } from '../../stores/ui'
 import { useVaultStore } from '../../stores/vault'
 import { FileTree } from './FileTree'
@@ -39,12 +39,6 @@ export function Sidebar() {
           icon={<Search size={13} />}
           label="Search"
         />
-        <SidebarTab
-          active={sidebarPanel === 'properties'}
-          onClick={() => setSidebarPanel('properties')}
-          icon={<Settings2 size={13} />}
-          label="Props"
-        />
       </div>
 
       {/* Panel content */}
@@ -55,7 +49,6 @@ export function Sidebar() {
           <>
             {sidebarPanel === 'files' && <FileTree />}
             {sidebarPanel === 'search' && <SearchPanel />}
-            {sidebarPanel === 'properties' && <PropertiesPlaceholder />}
           </>
         )}
       </div>
@@ -111,18 +104,6 @@ function EmptyState() {
       <p className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>No vault open</p>
       <p className="text-[11px] mt-1 leading-relaxed" style={{ color: 'var(--text-tertiary)', opacity: 0.7 }}>
         Open a folder to get started
-      </p>
-    </div>
-  )
-}
-
-function PropertiesPlaceholder() {
-  return (
-    <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-      <Settings2 size={28} className="mb-3 opacity-30" style={{ color: 'var(--text-tertiary)' }} />
-      <p className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>Properties</p>
-      <p className="text-[11px] mt-1" style={{ color: 'var(--text-tertiary)', opacity: 0.7 }}>
-        Select a note to view
       </p>
     </div>
   )

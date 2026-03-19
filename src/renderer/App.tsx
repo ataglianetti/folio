@@ -5,14 +5,18 @@ import { FolioEditor } from './components/editor/FolioEditor'
 import { TitleBar } from './components/editor/TitleBar'
 import { CommandPalette } from './components/CommandPalette'
 import { ChatPanel } from './components/chat/ChatPanel'
+import { PropertiesPanel } from './components/properties/PropertiesPanel'
 import { PopoverLayerProvider } from './components/PopoverLayer'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { ToastContainer } from './components/Toast'
 import { useUIStore } from './stores/ui'
 import { useVaultStore } from './stores/vault'
 import { useClaudeEvents } from './hooks/useClaudeEvents'
 import { applyTheme, watchSystemTheme } from './theme'
+import { registerShortcut, initGlobalListener } from './lib/shortcuts'
 
 function App() {
-  const { toggleCommandPalette, chatOpen, chatWidth, toggleChat, setSystemDark } = useUIStore()
+  const { chatOpen, chatWidth, sidebarVisible, propertiesOpen, setSystemDark } = useUIStore()
   const { openVault, isOpen } = useVaultStore()
 
   // Subscribe to Claude events
@@ -24,22 +28,72 @@ function App() {
     return watchSystemTheme(setSystemDark)
   }, [setSystemDark])
 
+  // Restore persisted state on mount
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd+K / Cmd+P — command palette
-      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'p')) {
-        e.preventDefault()
-        toggleCommandPalette()
+    window.folio.vault.getState().then((state: Record<string, unknown>) => {
+      const ui = useUIStore.getState()
+      if (typeof state.sidebarWidth === 'number') ui.setSidebarWidth(state.sidebarWidth as number)
+      if (typeof state.chatWidth === 'number') ui.setChatWidth(state.chatWidth as number)
+      if (typeof state.propertiesWidth === 'number') ui.setPropertiesWidth(state.propertiesWidth as number)
+      if (typeof state.chatOpen === 'boolean') useUIStore.setState({ chatOpen: state.chatOpen as boolean })
+      if (typeof state.propertiesOpen === 'boolean') useUIStore.setState({ propertiesOpen: state.propertiesOpen as boolean })
+      if (typeof state.sidebarVisible === 'boolean') useUIStore.setState({ sidebarVisible: state.sidebarVisible as boolean })
+
+      // Auto-open last vault
+      if (typeof state.lastVaultPath === 'string') {
+        const vault = useVaultStore.getState()
+        vault.openVault(state.lastVaultPath as string).then(() => {
+          if (typeof state.lastNotePath === 'string') {
+            useVaultStore.getState().openNote(state.lastNotePath as string)
+          }
+        }).catch(() => {
+          // Vault may no longer exist — that's fine
+        })
       }
-      // Cmd+Shift+L — toggle chat
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'l' || e.key === 'L')) {
-        e.preventDefault()
-        toggleChat()
+    }).catch(() => {})
+  }, [])
+
+  // Register all shortcuts and start global listener
+  useEffect(() => {
+    const { toggleCommandPalette, toggleChat, toggleSidebar, toggleProperties } = useUIStore.getState()
+    const { saveNote } = useVaultStore.getState()
+
+    registerShortcut('Mod+K', 'Command palette', toggleCommandPalette)
+    registerShortcut('Mod+P', 'Quick open', toggleCommandPalette)
+    registerShortcut('Mod+Shift+L', 'Toggle chat', toggleChat)
+    registerShortcut('Mod+S', 'Save note', saveNote)
+    registerShortcut('Mod+N', 'New note', () => {
+      const { createAndOpen } = useVaultStore.getState()
+      createAndOpen?.()
+    })
+    registerShortcut('Mod+B', 'Toggle sidebar', toggleSidebar)
+    registerShortcut('Mod+I', 'Toggle properties', toggleProperties)
+
+    return initGlobalListener()
+  }, [])
+
+  // Persist state on changes
+  useEffect(() => {
+    const unsubUI = useUIStore.subscribe((state) => {
+      window.folio.vault.saveState({
+        sidebarWidth: state.sidebarWidth,
+        chatWidth: state.chatWidth,
+        propertiesWidth: state.propertiesWidth,
+        chatOpen: state.chatOpen,
+        propertiesOpen: state.propertiesOpen,
+        sidebarVisible: state.sidebarVisible,
+      })
+    })
+    const unsubVault = useVaultStore.subscribe((state) => {
+      if (state.vaultPath) {
+        window.folio.vault.saveState({
+          lastVaultPath: state.vaultPath,
+          lastNotePath: state.currentNotePath ?? undefined,
+        })
       }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [toggleCommandPalette, toggleChat])
+    })
+    return () => { unsubUI(); unsubVault() }
+  }, [])
 
   // Listen for index events
   useEffect(() => {
@@ -64,30 +118,36 @@ function App() {
   }, [openVault])
 
   return (
-    <PopoverLayerProvider>
-      <div className="app-container flex h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-        <Sidebar />
+    <ErrorBoundary>
+      <PopoverLayerProvider>
+        <div className="app-container flex h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+          {sidebarVisible && <Sidebar />}
 
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Drag region for titlebar */}
-          <div className="titlebar-drag h-10 flex-shrink-0 flex items-center border-b border-[var(--border)]">
-            {isOpen && <TitleBar />}
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* Drag region for titlebar */}
+            <div className="titlebar-drag h-10 flex-shrink-0 flex items-center border-b border-[var(--border)]">
+              {isOpen && <TitleBar />}
+            </div>
+            <main className="flex-1 overflow-y-auto">
+              {isOpen ? (
+                <FolioEditor />
+              ) : (
+                <WelcomeScreen onOpenVault={handleOpenVault} />
+              )}
+            </main>
           </div>
-          <main className="flex-1 overflow-y-auto">
-            {isOpen ? (
-              <FolioEditor />
-            ) : (
-              <WelcomeScreen onOpenVault={handleOpenVault} />
-            )}
-          </main>
+
+          {/* Properties panel */}
+          {propertiesOpen && isOpen && <PropertiesPanel />}
+
+          {/* Chat panel */}
+          {chatOpen && <ChatPanel style={{ width: chatWidth }} />}
+
+          <CommandPalette />
+          <ToastContainer />
         </div>
-
-        {/* Chat panel */}
-        {chatOpen && <ChatPanel style={{ width: chatWidth }} />}
-
-        <CommandPalette />
-      </div>
-    </PopoverLayerProvider>
+      </PopoverLayerProvider>
+    </ErrorBoundary>
   )
 }
 

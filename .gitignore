@@ -8,3 +8,4 @@ dist/
 !.env.example
 *.log
 .planning/codebase/
+release/

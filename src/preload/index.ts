@@ -6,16 +6,22 @@ export interface FolioAPI {
     readNote: (path: string) => Promise<string>
     writeNote: (path: string, content: string) => Promise<void>
     listDirectory: (path: string) => Promise<Array<{ name: string; path: string; is_directory: boolean }>>
-    searchNotes: (query: string) => Promise<Array<{
-      path: string
-      title: string | null
-      note_type: string | null
-      tags: string[]
-      wikilinks: string[]
-      modified: number
-    }>>
+    searchNotes: (query: string, limit?: number, offset?: number) => Promise<{
+      results: Array<{
+        path: string
+        title: string | null
+        note_type: string | null
+        tags: string[]
+        wikilinks: string[]
+        modified: number
+      }>
+      total: number
+    }>
     getBacklinks: (noteName: string) => Promise<string[]>
+    resolveLink: (target: string) => Promise<string | null>
+    resolveAsset: (assetPath: string) => Promise<string | null>
     createNote: (path: string, noteType?: string) => Promise<void>
+    renameNote: (oldPath: string, newPath: string) => Promise<void>
     deleteNote: (path: string) => Promise<void>
     noteCount: () => Promise<number>
     selectDirectory: () => Promise<string | null>
@@ -23,6 +29,9 @@ export interface FolioAPI {
     onIndexComplete: (callback: (count: number) => void) => () => void
     onFileChange: (callback: (event: { path: string; kind: string }) => void) => () => void
     onIndexError: (callback: (error: string) => void) => () => void
+
+    getState: () => Promise<Record<string, unknown>>
+    saveState: (state: Record<string, unknown>) => Promise<void>
   }
 
   claude: {
@@ -48,9 +57,12 @@ const api: FolioAPI = {
     readNote: (path) => ipcRenderer.invoke('folio:read-note', path),
     writeNote: (path, content) => ipcRenderer.invoke('folio:write-note', path, content),
     listDirectory: (path) => ipcRenderer.invoke('folio:list-directory', path),
-    searchNotes: (query) => ipcRenderer.invoke('folio:search-notes', query),
+    searchNotes: (query, limit?, offset?) => ipcRenderer.invoke('folio:search-notes', query, limit, offset),
     getBacklinks: (noteName) => ipcRenderer.invoke('folio:get-backlinks', noteName),
+    resolveLink: (target) => ipcRenderer.invoke('folio:resolve-link', target),
+    resolveAsset: (assetPath) => ipcRenderer.invoke('folio:resolve-asset', assetPath),
     createNote: (path, noteType) => ipcRenderer.invoke('folio:create-note', path, noteType),
+    renameNote: (oldPath, newPath) => ipcRenderer.invoke('folio:rename-note', oldPath, newPath),
     deleteNote: (path) => ipcRenderer.invoke('folio:delete-note', path),
     noteCount: () => ipcRenderer.invoke('folio:note-count'),
     selectDirectory: () => ipcRenderer.invoke('folio:select-directory'),
@@ -72,6 +84,9 @@ const api: FolioAPI = {
       ipcRenderer.on('folio:index-error', handler)
       return () => ipcRenderer.removeListener('folio:index-error', handler)
     },
+
+    getState: () => ipcRenderer.invoke('folio:get-state'),
+    saveState: (state) => ipcRenderer.invoke('folio:save-state', state),
   },
 
   claude: {
